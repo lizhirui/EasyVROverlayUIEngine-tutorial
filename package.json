@@ -1,0 +1,16 @@
+{
+    "name": "easyvrui-tutorial",
+    "version": "1.0.0",
+    "private": true,
+    "description": "EasyVROverlayUIEngine multilingual beginner-to-advanced tutorial and reference site",
+    "scripts": {
+        "docs:dev": "vitepress dev docs",
+        "docs:build": "vitepress build docs",
+        "docs:preview": "vitepress preview docs"
+    },
+    "devDependencies": {
+        "mermaid": "^11.4.1",
+        "vitepress": "^1.6.3",
+        "vitepress-plugin-mermaid": "^2.0.17"
+    }
+}

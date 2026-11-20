@@ -1,0 +1,121 @@
+{
+    "format": "easyvruifrm",
+    "next_key": 5,
+    "root":
+    {
+        "child_list":
+        [
+            {
+                "child_list": [],
+                "collection_name": "control_list",
+                "key": 2,
+                "name": "label_hint",
+                "property_map":
+                {
+                    "rect":
+                    {
+                        "type": "rect",
+                        "value":
+                        {
+                            "height": 30,
+                            "left": 24,
+                            "top": 74,
+                            "width": 472
+                        }
+                    },
+                    "text":
+                    {
+                        "type": "string",
+                        "value": "输入想说的话："
+                    }
+                },
+                "type": "label"
+            },
+            {
+                "child_list": [],
+                "collection_name": "control_list",
+                "key": 3,
+                "name": "textbox_message",
+                "property_map":
+                {
+                    "rect":
+                    {
+                        "type": "rect",
+                        "value":
+                        {
+                            "height": 46,
+                            "left": 24,
+                            "top": 116,
+                            "width": 472
+                        }
+                    },
+                    "tag":
+                    {
+                        "type": "string",
+                        "value": "chatbox_input"
+                    },
+                    "text":
+                    {
+                        "type": "string",
+                        "value": ""
+                    }
+                },
+                "type": "textbox"
+            },
+            {
+                "child_list": [],
+                "collection_name": "control_list",
+                "key": 4,
+                "name": "button_send",
+                "property_map":
+                {
+                    "rect":
+                    {
+                        "type": "rect",
+                        "value":
+                        {
+                            "height": 44,
+                            "left": 24,
+                            "top": 180,
+                            "width": 150
+                        }
+                    },
+                    "text":
+                    {
+                        "type": "string",
+                        "value": "发送"
+                    },
+                    "tooltip_text":
+                    {
+                        "type": "string",
+                        "value": "把文本框里的内容发出去"
+                    }
+                },
+                "type": "button"
+            }
+        ],
+        "collection_name": "",
+        "key": 1,
+        "name": "quick_shout_window",
+        "property_map":
+        {
+            "rect":
+            {
+                "type": "rect",
+                "value":
+                {
+                    "height": 258,
+                    "left": 0,
+                    "top": 0,
+                    "width": 520
+                }
+            },
+            "title":
+            {
+                "type": "string",
+                "value": "静音快捷喊话条"
+            }
+        },
+        "type": "window"
+    }
+}

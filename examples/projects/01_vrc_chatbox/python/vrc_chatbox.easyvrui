@@ -1,0 +1,15 @@
+{
+    "id": "vrc_chatbox",
+    "name":
+    {
+        "en": "VRC Chatbox",
+        "zh": "VRChat快捷聊天框",
+        "ja": "VRCチャットボックス"
+    },
+    "type": "application",
+    "launch":
+    {
+        "runtime": "python",
+        "script": "vrc_chatbox.py"
+    }
+}

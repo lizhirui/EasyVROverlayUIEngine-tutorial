@@ -1,0 +1,15 @@
+{
+    "id": "wrist_watch",
+    "name":
+    {
+        "en": "Wrist Watch",
+        "zh": "手腕小表盘",
+        "ja": "リストウォッチ"
+    },
+    "type": "application",
+    "launch":
+    {
+        "runtime": "python",
+        "script": "wrist_watch.py"
+    }
+}

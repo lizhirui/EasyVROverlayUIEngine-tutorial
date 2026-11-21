@@ -152,7 +152,7 @@ Tab导航针对当前窗口内可聚焦、可见、启用并处于活动页面�
 |模块|头文件|
 |---|---|
 |绘图|`drawing_image.h`、`drawing_path.h`、`easyvrui/render/render_context.h`、`easyvrui/render/render_style.h`|
-|应用入口|`easyvrui/application.h`、`easyvrui/application_manage.h`|
+|应用入口|`easyvrui/application.h`、`easyvrui/application_management.h`|
 |模态窗口结果|`easyvrui/dialog/dialog_result.h`|
 |基础值与文字工具|`easyvrui/common/color.h`、`easyvrui/common/error.h`、`easyvrui/common/error_diagnostic.h`、`easyvrui/common/keyboard_key.h`、`easyvrui/common/u32string_hash.h`、`easyvrui/common/value.h`|
 |标准对话框|`easyvrui/dialog/color_dialog.h`、`easyvrui/dialog/file_open_dialog.h`、`easyvrui/dialog/file_save_dialog.h`、`easyvrui/dialog/font_dialog.h`、`easyvrui/dialog/inputbox.h`、`easyvrui/dialog/messagebox.h`|
@@ -192,7 +192,7 @@ Tab导航针对当前窗口内可聚焦、可见、启用并处于活动页面�
 
 应用消息循环在UI线程分派服务端事件、异步完成通知和本地投递的回调，再推进定时状态并提交待更新窗口。连接分别保存异步响应和服务端事件，消息泵合并两队列时保留收包顺序。例如旧输入文本先分派，之后才调用输入区关闭的完成回调。内部同步响应按请求ID单独交付。实现见[IPC、TLS与连接队列](/advanced/03_ipc_tls_protocol)。
 
-### `easyvrui/application_manage.h`
+### `easyvrui/application_management.h`
 
 `application_entry_t.name`保存匹配后的名称，`icon_path`保存图标路径，`icon_data`保存内嵌图片的原始文件字节。`language`为空时匹配系统语言并回退`en`。清单字段见[应用清单](./application_manifest)。
 

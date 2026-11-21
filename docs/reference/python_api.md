@@ -37,7 +37,7 @@ run("example")
 |---|---|
 |`easyvrui`|控件、值类型、事件、绘图、对话框、应用函数和输入组件|
 |`easyvrui.application`|`run`、`set_application_name`、`pump`、输入界面及应用管理函数|
-|`easyvrui.application_manage`|应用清单、启动、运行快照及会话与窗口管理|
+|`easyvrui.application_management`|应用清单、启动、运行快照及会话与窗口管理|
 |`easyvrui.control`|控件及其集合|
 |`easyvrui.common.color/rect/font`|颜色、矩形和字体|
 |`easyvrui.common.error`|语言选择和本地化异常|
@@ -1232,7 +1232,7 @@ python my_vr_app.py --easyvrui-host=192.0.2.10 --easyvrui-port=49537 --easyvrui-
 
 ### 8.3.应用列表与结束
 
-可从`easyvrui`或`easyvrui.application_manage`导入应用管理接口。清单读取与进程启动在调用进程所在机器上完成，因此应用与Engine可以位于不同机器。单实例由应用自身实现。应用管理快照包含经验证的引擎本机会话及其窗口，包含Desktop，过滤输入组件。查询和结束操作要求经验证的引擎本机会话，Desktop和输入组件受结束操作保护。
+可从`easyvrui`或`easyvrui.application_management`导入应用管理接口。清单读取与进程启动在调用进程所在机器上完成，因此应用与Engine可以位于不同机器。单实例由应用自身实现。应用管理快照包含经验证的引擎本机会话及其窗口，包含Desktop，过滤输入组件。查询和结束操作要求经验证的引擎本机会话，Desktop和输入组件受结束操作保护。
 
 |签名|用途|
 |---|---|

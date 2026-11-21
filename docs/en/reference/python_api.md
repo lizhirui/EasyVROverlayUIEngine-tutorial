@@ -37,7 +37,7 @@ run("example")
 |---|---|
 |`easyvrui`|Controls, value types, events, drawing, dialog boxes, application functions, and input components|
 |`easyvrui.application`|`run`, `set_application_name`, `pump`, input interface, and application management functions|
-|`easyvrui.application_manage`|Application list, startup, running snapshots, and session and window management|
+|`easyvrui.application_management`|Application list, startup, running snapshots, and session and window management|
 |`easyvrui.control`|Controls and their collections|
 |`easyvrui.common.color/rect/font`|Colors, rectangles, and fonts|
 |`easyvrui.common.error`|Language selection and localization exceptions|
@@ -1232,7 +1232,7 @@ Connection and certificate verification failures are reported as exceptions. The
 
 ### 8.3 Application List and Termination
 
-Application management interfaces can be imported from `easyvrui` or `easyvrui.application_manage`. List reading and process startup are completed on the machine where the process is called, so the application and Engine can be on different machines. A single instance is implemented by the application itself. The application management snapshot includes verified engine session and its windows, including the Desktop, with input components filtered out. Query and termination operations require a verified engine session, and the Desktop and input components are protected by termination operations.
+Application management interfaces can be imported from `easyvrui` or `easyvrui.application_management`. List reading and process startup are completed on the machine where the process is called, so the application and Engine can be on different machines. A single instance is implemented by the application itself. The application management snapshot includes verified engine session and its windows, including the Desktop, with input components filtered out. Query and termination operations require a verified engine session, and the Desktop and input components are protected by termination operations.
 
 |Signature|Purpose|
 |---|---|

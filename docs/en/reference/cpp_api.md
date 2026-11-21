@@ -152,7 +152,7 @@ Images and icons reuse the SDK's `drawing_image::load_file()` and other drawing 
 |Modules|Header files|
 |---|---|
 |Drawing|`drawing_image.h`、`drawing_path.h`、`easyvrui/render/render_context.h`、`easyvrui/render/render_style.h`|
-|Application entry|`easyvrui/application.h`、`easyvrui/application_manage.h`|
+|Application entry|`easyvrui/application.h`、`easyvrui/application_management.h`|
 |Modal window results|`easyvrui/dialog/dialog_result.h`|
 |Basic values and text tools|`easyvrui/common/color.h`、`easyvrui/common/error.h`、`easyvrui/common/error_diagnostic.h`、`easyvrui/common/keyboard_key.h`、`easyvrui/common/u32string_hash.h`、`easyvrui/common/value.h`|
 |Standard dialogs|`easyvrui/dialog/color_dialog.h`、`easyvrui/dialog/file_open_dialog.h`、`easyvrui/dialog/file_save_dialog.h`、`easyvrui/dialog/font_dialog.h`、`easyvrui/dialog/inputbox.h`、`easyvrui/dialog/messagebox.h`|
@@ -192,7 +192,7 @@ Event loop, resource query, and input area control entrances for window applicat
 
 The application message loop dispatches server events on the UI thread, asynchronously notifies completion, and locally delivers callbacks, then advances the timing state and submits the window to be updated. The connection saves asynchronous responses and server events separately, and the message pump maintains the order of receipt when merging the two queues. For example, the old input text is dispatched first, followed by the completion callback for closing the input area. Internal synchronous responses are delivered separately by request ID. See [, IPC, TLS, and connection queue](/en/advanced/03_ipc_tls_protocol) for implementation.
 
-### `easyvrui/application_manage.h`
+### `easyvrui/application_management.h`
 
 `application_entry_t.name` saves the matched name, `icon_path` saves the icon path, `icon_data` saves the original file bytes of the embedded image. When `language` is empty, it matches the system language and reverts to `en`. See [for application list and](./application_manifest) for list fields.
 

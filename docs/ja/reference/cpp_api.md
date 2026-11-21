@@ -152,7 +152,7 @@ Tabナビゲーションは、現在のウィンドウ内でフォーカス可�
 |モジュール|ヘッダーファイル|
 |---|---|
 |描画|`drawing_image.h`、`drawing_path.h`、`easyvrui/render/render_context.h`、`easyvrui/render/render_style.h`|
-|アプリケーションエントリ|`easyvrui/application.h`、`easyvrui/application_manage.h`|
+|アプリケーションエントリ|`easyvrui/application.h`、`easyvrui/application_management.h`|
 |モダルウィンドウ結果|`easyvrui/dialog/dialog_result.h`|
 |基本値とテキストツール|`easyvrui/common/color.h`、`easyvrui/common/error.h`、`easyvrui/common/error_diagnostic.h`、`easyvrui/common/keyboard_key.h`、`easyvrui/common/u32string_hash.h`、`easyvrui/common/value.h`|
 |標準ダイアログボックス|`easyvrui/dialog/color_dialog.h`、`easyvrui/dialog/file_open_dialog.h`、`easyvrui/dialog/file_save_dialog.h`、`easyvrui/dialog/font_dialog.h`、`easyvrui/dialog/inputbox.h`、`easyvrui/dialog/messagebox.h`|
@@ -192,7 +192,7 @@ Tabナビゲーションは、現在のウィンドウ内でフォーカス可�
 
 アプリケーションは、UIスレッドでサーバーイベントを割り当て、非同期完了通知とローカルでのコールバックを実行し、タイマー状態を進めて更新予定のウィンドウを提出します。接続は非同期応答とサーバーイベントをそれぞれ保存し、メッセージポンプが2つのキューを統合する際には受信順序を保持します。例えば、古い入力テキストが先に割り当てられ、その後に入力エリアの閉鎖完了コールバックが呼び出されます。内部の同期応答はリクエストIDごとに個別に提供されます。実装については[IPC、TLSおよび接続キュー](/ja/advanced/03_ipc_tls_protocol)を参照してください。
 
-### `easyvrui/application_manage.h`
+### `easyvrui/application_management.h`
 
 `application_entry_t.name`はマッチング後の名前を保存し、`icon_path`はアイコンパスを保存し、`icon_data`は内蔵画像の原始ファイルバイトを保存します。`language`は空の場合はシステム言語を保存し、`en`に戻ります。リストフィールドについては[アプリケーションリスト](./application_manifest)を参照してください。
 

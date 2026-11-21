@@ -79,7 +79,7 @@ D:\Tools\EasyVRUI\
 ├── installation.json
 ├── bin\
 │   ├── easyvrui_engine.exe
-│   ├── actions\
+│   ├── actions\                    # SteamVR action manifest and default controller bindings (actions.json, bindings_*.json)
 │   └── config.json
 ├── app\
 │   ├── desktop\
@@ -100,32 +100,32 @@ D:\Tools\EasyVRUI\
 │   │   │   └── easyvrui_demo_cpp.easyvrui
 │   │   └── python\
 │   │       ├── main.py
-│   │       ├── demo\
+│   │       ├── demo\               # Python Demo internal UI modules and image assets
 │   │       ├── requirements.txt
 │   │       └── easyvrui_demo_python.easyvrui
 │   ├── layout\standard_104\easyvrui_layout_standard_104.exe
 │   └── ime\
 │       ├── cn\easyvrui_pinyin\
 │       │   ├── easyvrui_ime_chinese_pinyin.exe
-│       │   └── rime\chinese_pinyin\
+│       │   └── rime\chinese_pinyin\ # Pinyin IME Rime schemas and dictionary data
 │       ├── en\easyvrui_english\easyvrui_ime_english.exe
 │       └── jp\easyvrui_japanese\
 │           ├── easyvrui_ime_japanese.exe
-│           └── rime\japanese\
+│           └── rime\japanese\      # Japanese IME Rime schemas and dictionary data
 └── sdk\
     ├── api\
-    │   ├── cpp\include\
+    │   ├── cpp\include\            # C++ public headers
     │   └── python\
-    │       ├── easyvrui\
+    │       ├── easyvrui\           # Python SDK wrapper package
     │       ├── engine_interface_native*.pyd
     │       ├── engine_interface_native.json
     │       └── requirements.txt
     └── engine_interface\
-        ├── include\
+        ├── include\                # Native interface public headers and json.hpp
         ├── lib\
         │   ├── engine_interface_static.lib
         │   ├── engine_interface.lib
-        │   └── cmake\EngineInterface\
+        │   └── cmake\EngineInterface\ # CMake find_package export configs
         └── bin\engine_interface.dll
 ```
 

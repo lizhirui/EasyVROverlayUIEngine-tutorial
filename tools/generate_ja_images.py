@@ -5,7 +5,6 @@ from tempfile import TemporaryDirectory
 import os
 import re
 import shutil
-import subprocess
 from PIL import ImageFont
 import capture_ui_screenshots as capture
 import generate_advanced_diagrams as advanced
@@ -159,19 +158,9 @@ def prepare_capture_build(directory):
         (directory / filename).write_text(content, encoding = "utf-8", newline = "\n")
 
     extra = f'''include("{(tool_folder / "capture_project.cmake").as_posix()}")\nfunction(configure_ja_capture)\n    foreach(role IN ITEMS desktop designer file_manager task_manager)\n        set(target "tutorial_capture_${{role}}")\n        get_target_property(source_list "${{target}}" SOURCES)\n        list(REMOVE_ITEM source_list "{(tool_folder / "capture_ui.cpp").as_posix()}")\n        list(APPEND source_list "{(directory / "ja_capture_ui.cpp").as_posix()}")\n        set_property(TARGET "${{target}}" PROPERTY SOURCES "${{source_list}}")\n    endforeach()\n    set_property(TARGET tutorial_capture_project_story PROPERTY SOURCES "{(directory / "ja_project_story.cpp").as_posix()};{(directory / "ja_first_window.cpp").as_posix()};{(directory / "ja_shout_main.cpp").as_posix()};{(directory / "ja_shout_window.cpp").as_posix()}")\n    target_include_directories(tutorial_capture_project_story PRIVATE "{(lesson_folder / "cpp").as_posix()}")\nendfunction()\ncmake_language(DEFER CALL configure_ja_capture)\n'''
-    (directory / "capture_project.cmake").write_text(extra, encoding = "utf-8", newline = "\n")
-    command = directory / "build_capture.cmd"
-    shutil.copyfile(tool_folder / command.name, command)
-    return command
-
-def build_capture_binary(directory, toolchain_build, command, role_list):
-    cache = capture.read_cmake_cache(toolchain_build)
-    cmake, vcvars, ninja = capture.find_build_tool(cache, None, None)
-    target_list = " ".join(f"tutorial_capture_{name}" for name in role_list)
-    cmd = os.environ.get("ComSpec", r"C:\Windows\System32\cmd.exe")
-    build = directory / "build"
-    invocation = f'"{cmd}" /d /s /c ""{command}" "{vcvars}" "{cmake}" "{capture.WORKSPACE}" "{build}" "{ninja}" "{target_list}""'
-    subprocess.run(invocation, cwd = SITE, check = True)
+    project = directory / "capture_project.cmake"
+    project.write_text(extra, encoding = "utf-8", newline = "\n")
+    return project
 
 def format_file_dialog_rows(collection):
     return f'            auto &entry_list = dynamic_cast<listview &>({collection}[U"listview_entry"]);\n\n            for(size_t index = 0u;index < entry_list.get_item_list().get_size();index++)\n            {{\n                auto &cells = entry_list.get_item_list()[index]->get_cell_list();\n                const auto &filename = cells[0u];\n                u32string kind = U"フォルダー";\n\n                if(filename.ends_with(U".txt"))\n                {{\n                    kind = U"テキスト文書";\n                }}\n                else if(filename.ends_with(U".json"))\n                {{\n                    kind = U"JSONファイル";\n                }}\n                else if(filename.ends_with(U".easyvruifrm"))\n                {{\n                    kind = U"フォーム設計";\n                }}\n\n                cells.set_cell(1u, U"2026/11/21 04:17");\n                cells.set_cell(2u, kind);\n            }}\n\n'
@@ -241,18 +230,17 @@ def prepare_guide_capture_build(directory):
         cmake_list.append(f'    set_property(TARGET {target} PROPERTY SOURCES "${{source_list}}")')
 
     cmake_list.extend(["endfunction()", "cmake_language(DEFER CALL configure_japanese_guide_capture)"])
-    (directory / "capture_project.cmake").write_text("\n".join(cmake_list), encoding = "utf-8", newline = "\n")
-    command = directory / "build_capture.cmd"
-    shutil.copyfile(tool_folder / command.name, command)
-    return command
+    project = directory / "capture_project.cmake"
+    project.write_text("\n".join(cmake_list), encoding = "utf-8", newline = "\n")
+    return project
 
-def render_guide(output, distribution, toolchain_build, reuse_binaries):
+def render_guide(output, repository, reuse_binaries):
     directory = GUIDE_WORK / "native"
     directory.mkdir(parents = True, exist_ok = True)
     role_list = tuple(GUIDE_SOURCE_MAP)
 
     if not reuse_binaries:
-        build_capture_binary(directory, toolchain_build, prepare_guide_capture_build(directory), role_list)
+        capture.build_capture_targets(directory / "build", prepare_guide_capture_build(directory), role_list)
 
     with TemporaryDirectory(prefix = "guide_", dir = GUIDE_WORK) as name:
         stage = Path(name)
@@ -260,7 +248,7 @@ def render_guide(output, distribution, toolchain_build, reuse_binaries):
         profile = stage / "profile"
         fixture = stage / "Examples"
         images = stage / "images"
-        capture.stage_installation(installation, distribution, role_list)
+        capture.stage_installation(installation, repository, role_list)
         capture.prepare_fixture(fixture)
         (profile / "Roaming").mkdir(parents = True)
         (profile / "Local").mkdir()
@@ -284,13 +272,13 @@ def render_guide(output, distribution, toolchain_build, reuse_binaries):
 def get_capture_asset_list():
     return ("desktop", "form_designer", "file_manager", "task_manager", "layout_keyboard", "ime_candidates", "basics_form_design", *capture.STORY_IMAGE_LIST, "vr_hero_workspace", "vr_curvature_and_handles", "vr_input_stack", "vr_designer_annotated",)
 
-def render_capture(output, distribution, toolchain_build, reuse_binaries):
+def render_capture(output, repository, reuse_binaries):
     WORK.mkdir(parents = True, exist_ok = True)
     native = WORK / "native"
     native.mkdir(exist_ok = True)
 
     if not reuse_binaries:
-        build_capture_binary(native, toolchain_build, prepare_capture_build(native), NATIVE_ROLE_LIST)
+        capture.build_capture_targets(native / "build", prepare_capture_build(native), NATIVE_ROLE_LIST)
 
     with TemporaryDirectory(prefix = "capture_", dir = WORK) as name:
         stage = Path(name)
@@ -298,7 +286,7 @@ def render_capture(output, distribution, toolchain_build, reuse_binaries):
         profile = stage / "profile"
         asset_directory = stage / "assets"
         fixture = stage / "Examples"
-        capture.stage_installation(installation, distribution, NATIVE_ROLE_LIST)
+        capture.stage_installation(installation, repository, NATIVE_ROLE_LIST)
         capture.prepare_fixture(fixture)
         form = stage / "quick_shout_window.easyvruifrm"
         form.write_text(localize_capture_source(form.read_text(encoding = "utf-8"), get_label_map(CAPTURE_LABEL_TEXT)), encoding = "utf-8", newline = "\n",)
@@ -330,8 +318,7 @@ def run():
     parser.add_argument("--guide", action = "store_true", help = "Build and capture Japanese controls, dialogs, and related diagrams.",)
     parser.add_argument("--reuse-binaries", action = "store_true", help = "Use the Japanese WARP fixture binaries from a previous run.",)
     parser.add_argument("--output", type = Path, default = OUTPUT)
-    parser.add_argument("--distribution", type = Path)
-    parser.add_argument("--toolchain-build", type = Path, default = capture.WORKSPACE / "build/native")
+    parser.add_argument("--repository", type = Path, default = capture.WORKSPACE / "repo")
     option = parser.parse_args()
     output = option.output.resolve()
 
@@ -347,11 +334,11 @@ def run():
 
     if option.capture:
         output.mkdir(parents = True, exist_ok = True)
-        render_capture(output, (option.distribution or capture.get_latest_distribution()).resolve(), option.toolchain_build.resolve(), option.reuse_binaries,)
+        render_capture(output, option.repository.resolve(), option.reuse_binaries)
 
     if option.guide:
         output.mkdir(parents = True, exist_ok = True)
-        render_guide(output, (option.distribution or capture.get_latest_distribution()).resolve(), option.toolchain_build.resolve(), option.reuse_binaries,)
+        render_guide(output, option.repository.resolve(), option.reuse_binaries)
 
 if __name__ == "__main__":
     run()

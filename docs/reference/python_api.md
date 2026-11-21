@@ -10,9 +10,9 @@
 
 ### 1.1.应用组成
 
-安装后的Python应用使用安装根目录下的`sdk/api/python/`。该目录集中存放`easyvrui/`、静态链接的`engine_interface_native*.pyd`和`requirements.txt`。解释器须匹配安装记录中的CPython版本和x64架构。由Desktop或File Manager通过SDK启动清单时，子进程的`PYTHONPATH`会前置此目录并保留原值，`EASYVRUI_NATIVE_DIR`也指向此目录。从CMD直接运行示例时，先将此目录前置到`PYTHONPATH`。
+安装后的Python应用使用安装根目录下的`sdk/api/python/`。该目录集中存放`easyvrui/`、静态链接的`engine_interface_native*.pyd`、原生扩展描述文件`engine_interface_native.json`和`requirements.txt`。解释器须匹配安装记录中的CPython版本和x64架构。由Desktop或File Manager通过SDK启动清单时，子进程的`PYTHONPATH`会前置此目录并保留原值，`EASYVRUI_NATIVE_DIR`也指向此目录。从CMD直接运行示例时，先将此目录前置到`PYTHONPATH`。
 
-从源码开发时，可将`repo/sdk/api/python/`加入模块搜索路径，并用`EASYVRUI_NATIVE_DIR`指定构建出的扩展所在目录。加载器还支持从`EASYVRUI_ENGINE_INTERFACE`所指库文件的父目录查找扩展。自行构建采用DLL链接的扩展时，需部署匹配的`engine_interface.dll`。安装器部署的扩展已包含原生实现。
+从源码开发时，先以相同配置运行`repo/sdk/engine_interface/build.bat`和`repo/sdk/api/python/build.bat`。将`repo/sdk/api/python/`加入模块搜索路径，并将`EASYVRUI_NATIVE_DIR`设为`repo/sdk/api/python/build/bin/`。加载器也会从`EASYVRUI_ENGINE_INTERFACE`所指库文件的父目录查找扩展。使用DLL链接版扩展时，需部署匹配的`engine_interface.dll`。
 
 Python API运行部分使用标准库和预编译扩展。应用自己的Python依赖记录在对应应用目录的`requirements.txt`。示例应用位于`repo/app/demo/python`，其控件派生类属于应用示例。
 

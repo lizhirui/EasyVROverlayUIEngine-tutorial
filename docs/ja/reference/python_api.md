@@ -10,9 +10,9 @@
 
 ### 1.1.アプリケーションの構成
 
-インストール後のPythonアプリケーションは、インストールルートディレクトリ内の`sdk/api/python/`を使用します。このディレクトリには`easyvrui/`、静的リンクされた`engine_interface_native*.pyd`、および`requirements.txt`が集められています。インタプリタは、インストール記録に記載されたCPythonバージョンとx64アーキテクチャに一致している必要があります。DesktopまたはFile ManagerがSDKを通じてリストを起動する際、サブプロセスの`PYTHONPATH`はこのディレクトリを先に指定し、元の値を保持します。`EASYVRUI_NATIVE_DIR`もこのディレクトリを指します。CMDから直接例を実行する場合、まずこのディレクトリを`PYTHONPATH`に先に指定します。
+インストール後のPythonアプリケーションは、インストールルートディレクトリ内の`sdk/api/python/`を使用します。このディレクトリには`easyvrui/`、静的リンク版の`engine_interface_native*.pyd`、拡張モジュールの記述ファイル`engine_interface_native.json`、`requirements.txt`が含まれます。インタプリタは、インストール記録に記載されたCPythonバージョンとx64アーキテクチャに一致している必要があります。DesktopまたはFile ManagerがSDKを通じてリストを起動する際、サブプロセスの`PYTHONPATH`はこのディレクトリを先に指定し、元の値を保持します。`EASYVRUI_NATIVE_DIR`もこのディレクトリを指します。CMDから直接例を実行する場合、まずこのディレクトリを`PYTHONPATH`に先に指定します。
 
-ソースコードから開発する際、`repo/sdk/api/python/`をモジュール検索パスに追加し、`EASYVRUI_NATIVE_DIR`で指定された拡張のディレクトリを使用します。ローダーは`EASYVRUI_ENGINE_INTERFACE`で指定されたライブラリファイルの親ディレクトリから拡張を検索することもサポートします。DLLリンクを使用して拡張を自作する場合、対応する`engine_interface.dll`をデプロイする必要があります。インストーラーによってデプロイされた拡張には、ネイティブ実装が含まれています。
+ソースから開発する場合は、同じ構成で`repo/sdk/engine_interface/build.bat`と`repo/sdk/api/python/build.bat`を実行します。`repo/sdk/api/python/`をモジュール検索パスに追加し、`EASYVRUI_NATIVE_DIR`に`repo/sdk/api/python/build/bin/`を指定します。ローダーは`EASYVRUI_ENGINE_INTERFACE`が指すライブラリの親ディレクトリからも拡張を検索します。DLLリンク版の拡張には、対応する`engine_interface.dll`が必要です。
 
 Python APIの実行部分は、標準ライブラリとプレコンパイルされた拡張を使用します。自分のPython依存関係は、対応するアプリケーンディレクトリ内の`requirements.txt`に記録します。サンプルアプリケーションは`repo/app/demo/python`にあり、そのコントロール派生クラスはアプリケーンスンプルに属しています。
 

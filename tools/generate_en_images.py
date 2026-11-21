@@ -2,9 +2,7 @@ from argparse import ArgumentParser
 import json
 from pathlib import Path
 import re
-import runpy
 import shutil
-import subprocess
 from tempfile import TemporaryDirectory
 from PIL import ImageFont
 import capture_ui_screenshots as capture
@@ -14,7 +12,7 @@ ADVANCED_TEXT_MAP = {"坐标系与窗口上的刻度": "Coordinate systems and w
 STORY_TEXT_MAP = {"你好，VR世界！": "Hello, VR world!", "已发送：Ready for sync": "Sent: Ready for sync", "VRChat快捷聊天": "VRChat quick chat", "常用短语": "Common phrases", "大家好！": "Hello, everyone!", "我会在入口等候。": "I’ll wait at the entrance.", "请再发一次链接。": "Please resend the link.", "我稍后回来。": "I’ll be right back.", "谢谢，晚点见！": "Thanks, see you later!", "消息预览": "Message preview", "离线演示 · 等待编辑": "Offline demo · Ready to edit", "发送模拟消息": "Send test message", "清空气泡…": "Clear bubble…", "模拟数据报已提交 · 冷却期间暂停发送": "Test packet sent · Cooling down", "\\n等大家到齐后，我们按名单依次进入。\\n如果暂时无法回应，可以先在这里留言。\\n我会核对集合地点，并在下一轮确认人数。": "\\nWe’ll go in order when everyone arrives.\\nLeave a note if you can’t reply yet.\\nI’ll check the meeting point and count.", "清空当前Chatbox": "Clear current Chatbox", "确定发送清空指令吗？本地草稿可以保留。": "Send the clear command? Your local draft stays available.", "房间记录与相册": "Room logs and gallery", "房间记录": "Room logs", "相册预览": "Photo preview", "全部房间与玩家": "All rooms and players", "观景台 / Mika": "Lookout / Mika", "港口 / Ren": "Harbor / Ren", "时间": "Time", "房间": "Room", "玩家": "Player", "事件": "Event", "本地示例数据 · 已读取4条记录": "Local sample data · 4 records loaded", "观景台": "Lookout", "加入": "Joined", "港口": "Harbor", "离开": "Left", "本地示例数据 · 筛选后2条记录": "Local sample data · 2 matching records", "演示相册": "Sample gallery", "观景台日落.png": "lookout_sunset.png", "选择照片以预览": "Choose a photo to preview", "观景台日落 · 1600×900 · 合成素材": "Lookout sunset · 1600 × 900 · Generated image", "相册 · 等比预览": "Photo gallery · Aspect ratio preserved", "导出筛选后的房间记录": "Export filtered room logs", "TSV表格": "TSV table", "导出示例目录": "Export sample folder", "Avatar参数与预设": "Avatar parameters and presets", "参数名": "Parameter", "类型": "Type", "当前值": "Current value", "实时更新 · 本地演示": "Live updates · Local demo", "当前Float参数": "Current Float parameters", "自定义": "Custom", "演示预设": "Sample preset", "保存为预设…": "Save as preset…", "示例Avatar · 等待编辑": "Sample Avatar · Ready to edit", "已更新EarFlop · 演示通道": "EarFlop updated · Test channel", "保存自定义预设": "Save custom preset", "为当前参数快照输入名称": "Name the current parameter snapshot", "观景台调试预设": "Lookout test preset", "腕部HUD": "Wrist HUD", "left · 0.65倍 · 测试采样": "left · 0.65× · Test samples", "显示桌面副屏": "Show desktop preview", "桌面副屏与电平": "Desktop preview and level", "无头WARP · 桌面画面占位": "Headless WARP · Screen placeholder", "body · 曲率0.65m⁻¹": "body · Curvature 0.65 m⁻¹", "world · 曲率0.00m⁻¹ · 平面": "world · Curvature 0.00 m⁻¹ · Flat", "远程会话配置": "Remote session setup", "Engine地址与端口": "Engine address and port", "凭据与证书指纹 · 使用测试配置": "Credential and certificate fingerprint · Test configuration", "验证配置": "Validate setup", "等待验证 · 本地状态演示": "Waiting for validation · Local demo", "测试状态：会话已连接": "Test status: session connected", "颜文字测试面板": "Kaomoji test panel", "问候": "Greetings", "回应": "Replies", "最近使用 · 暂无": "Recent · Empty", "测试提交 · 最近使用：": "Test input · Recent: ", "我的第一个VR窗口": "My First VR Window", "点一下下面的按钮试试看！": "Click the button below to try it!", "点我打招呼": "Say hello", "已发送：": "Sent: ", "输入想说的话：": "Enter a message:", "发送": "Send", "把文本框里的内容发出去": "Send the text in the textbox", "静音快捷喊话条": "Quiet Quick-Message Bar",}
 OUTPUT = capture.OUTPUT / "en"
 WORKSPACE = capture.WORKSPACE
-ENGLISH_BUILD = WORKSPACE / "build/tutorial_english_capture"
+ENGLISH_BUILD = capture.WORK / "capture_en"
 HAN = re.compile(r"[\u3400-\u9fff]")
 STRING_LITERAL = re.compile(r'"((?:\\.|[^"\\\n])*)"')
 WIDE_LITERAL = re.compile(r'std::u32string\{U"((?:\\.|[^"\\\n])*)", std::size_t\{\d+u\}\}')
@@ -166,22 +164,15 @@ def prepare_capture_project(build_directory, guide):
 def build_capture(build_directory, guide):
     build_directory.mkdir(parents = True, exist_ok = True)
     project = prepare_capture_project(build_directory, guide)
-    native_cache = capture.read_cmake_cache(WORKSPACE / "build/native")
-    cmake, _, ninja = capture.find_build_tool(native_cache, None, None)
-    deployment = runpy.run_path(str(WORKSPACE / "repo/sdk/engine_interface/deployment/build_install.py"))
-    env = deployment["get_build_environment"](deployment["get_visual_studio_directory"]())
-    env["PYTHONDONTWRITEBYTECODE"] = "1"
     tool_map = {"ime": ("pinyin", "japanese")}
     role_list = [item for role in CAPTURE_ROLE_LIST for item in tool_map.get(role, (role,))]
-    target_list = [f"tutorial_capture_{role}" for role in (GUIDE_SOURCE_MAP if guide else (*role_list, "project_story"))]
-    subprocess.run([str(cmake), "-S", str(WORKSPACE), "-B", str(build_directory), "-G", "Ninja", f"-DCMAKE_MAKE_PROGRAM={ninja}", "-DCMAKE_BUILD_TYPE=Release", "-DEASYVRUI_BUILD_TESTS=ON", "-DENGINE_INTERFACE_BUILD_PYTHON_BINDING=OFF", f"-DCMAKE_PROJECT_easyvrui_INCLUDE={project}",], env = env, check = True,)
-    subprocess.run([str(cmake), "--build", str(build_directory), "--config", "Release", "--parallel", "8", "--target", *target_list,], env = env, check = True,)
+    capture.build_capture_targets(build_directory, project, GUIDE_SOURCE_MAP if guide else (*role_list, "project_story"))
 
-def render_capture_list(build_directory, distribution):
+def render_capture_list(build_directory, repository):
     with TemporaryDirectory(prefix = "stage_", dir = build_directory) as temporary:
         stage = Path(temporary)
         installation = stage / "installation"
-        capture.stage_installation(installation, distribution, CAPTURE_ROLE_LIST)
+        capture.stage_installation(installation, repository, CAPTURE_ROLE_LIST)
         fixture = stage / "Examples"
         capture.prepare_fixture(fixture)
         design = stage / "quick_shout_window.easyvruifrm"
@@ -209,7 +200,7 @@ def render_capture_list(build_directory, distribution):
             shutil.copyfile(image, OUTPUT / image.name)
             print(f"{image.name} {width}x{height}")
 
-def render_guide_list(build_directory, distribution):
+def render_guide_list(build_directory, repository):
     role_list = tuple(GUIDE_SOURCE_MAP)
 
     with TemporaryDirectory(prefix = "guide_", dir = build_directory) as temporary:
@@ -220,7 +211,7 @@ def render_guide_list(build_directory, distribution):
         (profile / "Roaming").mkdir(parents = True)
         (profile / "Local").mkdir()
         output = stage / "en"
-        capture.stage_installation(installation, distribution, role_list)
+        capture.stage_installation(installation, repository, role_list)
         capture.prepare_fixture(fixture)
 
         for role in role_list:
@@ -243,7 +234,7 @@ def render_guide_list(build_directory, distribution):
 
 def run():
     parser = ArgumentParser(description = "Capture current EasyVRUI windows with WARP and generate the English tutorial diagrams.")
-    parser.add_argument("--distribution", type = Path)
+    parser.add_argument("--repository", type = Path, default = WORKSPACE / "repo")
     parser.add_argument("--build-directory", type = Path, default = ENGLISH_BUILD)
     parser.add_argument("--diagrams-only", action = "store_true")
     parser.add_argument("--capture-only", action = "store_true")
@@ -258,18 +249,18 @@ def run():
     if not option.diagrams_only:
         build_directory = option.build_directory.resolve()
 
-        if not build_directory.is_relative_to((WORKSPACE / "build").resolve()):
-            raise ValueError("Use a capture build directory under the workspace build folder")
+        if not build_directory.is_relative_to(capture.SITE):
+            raise ValueError("Choose a capture build directory inside the tutorial checkout.")
 
         if not option.reuse_binaries:
             build_capture(build_directory, option.guide)
 
-        distribution = (option.distribution or capture.get_latest_distribution()).resolve()
+        repository = option.repository.resolve()
 
         if option.guide:
-            render_guide_list(build_directory, distribution)
+            render_guide_list(build_directory, repository)
         else:
-            render_capture_list(build_directory, distribution)
+            render_capture_list(build_directory, repository)
 
 if __name__ == "__main__":
     run()

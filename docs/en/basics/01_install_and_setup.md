@@ -3,7 +3,7 @@
 This chapter explains how to compile the source code and install the running directory of EasyVROverlayUIEngine in a Windows environment.
 
 ::: tip Build once to use the Python SDK
-The project repository already includes one-click scripts `build.bat` and `install.bat`. There is no need to manually write CMake or compilation commands. If you only use **Python** to develop VR applications later, you only need to complete one build and installation during the first deployment. No further configuration or invocation of the C++ compiler is required.
+The top-level `build.bat` builds the components, and `install.bat` copies the output into a runtime directory. If you develop VR apps in **Python**, you can use the prebuilt native extension after installation.
 :::
 
 ---
@@ -17,7 +17,7 @@ Before starting the build, please ensure that the system meets the following con
 |**Operating System**|Windows 10 / 11 (64-bit)|The engine is natively based on Windows and Direct3D 11. It does not support Linux/macOS for now.|
 |**Graphics Card and VR Environment**|Graphics card supporting Direct3D 11 + SteamVR + VR headset|Meeting the usual SteamVR running requirements is sufficient.|
 |**Python**|64-bit CPython 3.11 or higher version|When installing, please check **Add python.exe to PATH** to ensure that `python` can be directly invoked in CMD.|
-|**C++ Build Tools**|Visual Studio (check the "Desktop development with C++" workload + Windows SDK)|Used for compiling the Engine, native SDK, and built-in applications; Visual Studio comes with CMake and Ninja, no additional installation is required.|
+|**C++ build tools**|MSVC x64 with C++20 support, Windows SDK, CMake 3.24 or later, and Ninja|Select the "Desktop development with C++" workload in Visual Studio and install its CMake and Ninja components.|
 
 ::: warning Use Windows Command Prompt
 During the construction and execution of scripts in this project, please always use Windows’ built-in **Command Prompt (CMD)**. Press `Win+R`, type `cmd`, and press Enter. PowerShell handles quotes, parameter passing, and environment variables differently from CMD. This could lead to errors during script construction or installation.
@@ -25,52 +25,59 @@ During the construction and execution of scripts in this project, please always 
 
 ---
 
-## Step 2: Obtain the Source Code and Execute the Build
+## Step 2: Build Engine, the SDK, and the built-in apps
 
-Assume that the repository is located at `D:\program\project\EasyVROverlayUIEngine\repo` (it can be placed in other directories as needed, and the path can include Chinese characters or spaces).
-
-Open **CMD**, enter the repository directory, and run `build.bat`:
+In CMD, change to the source repository root and run `build.bat`.
 
 ```cmd
-cd /d D:\program\project\EasyVROverlayUIEngine\repo
+cd /d "D:\program\project\EasyVROverlayUIEngine\repo"
 build.bat
 ```
 
-To speed up the compilation process, you can specify the Release configuration and the number of parallel threads (for example, 8 threads):
+The default is a Release build with 8 parallel jobs. Use `--configuration` and `--parallel` to set the build configuration and job count.
 
 ```cmd
 build.bat --configuration Release --parallel 8
 ```
 
-### Build script execution flow
+### Component build directories
 
-`build.bat` will automatically complete the following steps:
-1. Automatically locate the local Visual Studio x64 toolchain, CMake, and Ninja;
-2. Compile **Engine** (`easyvrui_engine.exe`, responsible for core services for GPU rendering and SteamVR interaction);
-3. Compile **native SDK** (static library `engine_interface_static.lib`, dynamic library `engine_interface.dll`, and Python native extension `engine_interface_native*.pyd`);
-4. Compile Desktop, Form Designer, File Manager, Task Manager, C++ Demo, standard 104 virtual keyboard, and Chinese, English, Japanese IMEs, and prepare Python Demo and various application resources.
+The top-level `build.bat` initializes the MSVC x64 environment once in CMD and calls the `build.bat` of each of the 12 components in order. Each script configures and builds its component in its own `build/` directory. The output paths below are relative to the component.
 
-::: info Offline builds
-All third-party dependency source codes (including the Rime engine and dictionary required for Chinese pinyin and Japanese input methods) are fully built into the repository. **The build process does not depend on external network downloads**. The first full compilation usually takes a few minutes, and subsequent incremental modifications can be completed in just seconds.
-:::
+|Component directory|Build output|
+|---|---|
+|`sdk/engine_interface`|Static library, DLL import library, and CMake package in `build/lib/`. DLL in `build/bin/` and public headers in `build/include/`.|
+|`sdk/api/python`|Python SDK package and `engine_interface_native*.pyd` in `build/bin/`.|
+|`engine`|`easyvrui_engine.exe` and SteamVR action resources in `build/bin/`.|
+|`app/desktop`, `app/form_designer`, `app/file_manager`, `app/task_manager`, `app/demo/cpp`|Each app's executable and generated runtime resources in its `build/bin/`.|
+|`app/layout/standard_104`, `app/ime/cn/easyvrui_pinyin`, `app/ime/en/easyvrui_english`, `app/ime/jp/easyvrui_japanese`|Each component's executable in its `build/bin/`. The Pinyin and Japanese IMEs also generate precompiled dictionaries in `build/bin/rime/`.|
 
-::: tip Build troubleshooting
-If errors occur with `build.bat` due to differences in the local environment (such as missing Windows SDK components, PATH environment variable conflicts, or not selecting the full Visual Studio workload), you can copy the error message at the end of CMD to AI-assisted tools (such as Gemini / GPT / Claude) to help locate the missing components.
-:::
+### Build a single component
 
-The default build directory is `../build/easyvrui_distribution`, located outside the source code repository. When using `--build-directory` to specify another directory, the installation command must pass the same directory.
+You can run `build.bat` directly from a component directory. Before building the native Python extension or a C++ app on its own, build `sdk/engine_interface` with the same configuration. The component uses the prebuilt SDK in `sdk/engine_interface/build/`. This example builds the SDK, then builds Desktop separately.
+
+```cmd
+cd /d "D:\program\project\EasyVROverlayUIEngine\repo\sdk\engine_interface"
+build.bat --configuration Release
+cd /d "D:\program\project\EasyVROverlayUIEngine\repo\app\desktop"
+build.bat --configuration Release
+```
+
+A successful build records its configuration in `build/configuration.txt`. Third-party sources, Rime schemas, and dictionaries are bundled with the repository. You can build offline once the toolchain is installed.
 
 ---
 
-## Step three: Install to the run directory
+## Step three: Install the runtime
 
-After the build is completed, run `install.bat` to deploy the executable file and SDK to the target directory (for example, `D:\Tools\EasyVRUI`):
+After building all 12 components, run `install.bat` from the source repository root. The CMD installer reads each component's `build/` directory and checks that the builds completed with the same configuration. It copies the Python Demo and C++ API headers from their source directories. Choose an installation directory separate from the source repository.
 
 ```cmd
+cd /d "D:\program\project\EasyVROverlayUIEngine\repo"
 install.bat "D:\Tools\EasyVRUI"
 ```
 
-If you execute `install.bat` without specifying the path parameters, the script will prompt you to enter the installation path in the command line.
+If you omit the destination, `install.bat` prompts for it.
+
 
 Below are the directories generated by a fresh installation. The relative paths of each application follow the directory structure in `repo/app/`.
 
@@ -87,17 +94,21 @@ D:\Tools\EasyVRUI\
 │   │   └── config.json
 │   ├── form_designer\
 │   │   ├── easyvrui_form_designer.exe
-│   │   └── easyvrui_form_designer.easyvrui
+│   │   ├── easyvrui_form_designer.easyvrui
+│   │   └── resources\             # Form Designer resources
 │   ├── file_manager\
 │   │   ├── easyvrui_file_manager.exe
-│   │   └── easyvrui_file_manager.easyvrui
+│   │   ├── easyvrui_file_manager.easyvrui
+│   │   ├── easyvrui_volume_query.exe # Volume query helper
+│   │   └── file_manager.json         # File association configuration
 │   ├── task_manager\
 │   │   ├── easyvrui_task_manager.exe
 │   │   └── easyvrui_task_manager.easyvrui
 │   ├── demo\
 │   │   ├── cpp\
 │   │   │   ├── easyvrui_demo_cpp.exe
-│   │   │   └── easyvrui_demo_cpp.easyvrui
+│   │   │   ├── easyvrui_demo_cpp.easyvrui
+│   │   │   └── resources\          # C++ Demo resources
 │   │   └── python\
 │   │       ├── main.py
 │   │       ├── demo\               # Python Demo internal UI modules and image assets
@@ -114,7 +125,9 @@ D:\Tools\EasyVRUI\
 │           └── rime\japanese\      # Japanese IME Rime schemas and dictionary data
 └── sdk\
     ├── api\
-    │   ├── cpp\include\            # C++ public headers
+    │   ├── cpp\
+    │   │   ├── include\            # C++ public headers
+    │   │   └── third_party\json\    # JSON headers bundled with the C++ API
     │   └── python\
     │       ├── easyvrui\           # Python SDK wrapper package
     │       ├── engine_interface_native*.pyd
@@ -129,7 +142,7 @@ D:\Tools\EasyVRUI\
         └── bin\engine_interface.dll
 ```
 
-`installation.json` marks the installation root directory and records the build configuration, Python version, and application list paths. In `bin/config.json`, `desktop` and `provider_list` are based on the `bin/` where the file is located, and the programs are referenced through `../app/...`. `app/desktop/config.json` is based on the Desktop directory, registering the built-in application list, such as `../demo/cpp/easyvrui_demo_cpp.easyvrui`. Each [application list](/en/reference/application_manifest) then parses `launch.executable` or `launch.script` and sub-process working directories using its own directory.
+On a fresh installation, `install.bat` creates `bin/config.json`. Engine generates an access credential on its first launch. `installation.json` marks the installation root directory and records the build configuration, Python version, and application list paths. In `bin/config.json`, `desktop` and `provider_list` are based on the `bin/` where the file is located, and the programs are referenced through `../app/...`. `app/desktop/config.json` is based on the Desktop directory, registering the built-in application list, such as `../demo/cpp/easyvrui_demo_cpp.easyvrui`. Each [application list](/en/reference/application_manifest) then parses `launch.executable` or `launch.script` and sub-process working directories using its own directory.
 
 Built C++ applications and Python native extensions are linked to `engine_interface_static` by default. `engine_interface.lib` is the DLL import library, and `engine_interface.dll` is used by selected shared-linked applications. Engine, SDK, and applications each embed the built-in language packs in binary. Applications can also call `language_pack.load_directory()` of the SDK to load custom language packs.
 

@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
-import sys
 from tempfile import TemporaryDirectory
 from PIL import Image, ImageStat
 SITE = Path(__file__).resolve().parents[1]
@@ -20,44 +19,14 @@ STORY_IMAGE_LIST = ("basics_first_initial", "basics_first_clicked", "basics_form
 ROLE_LIST = (tuple(CAPTURE_MAP) + ("ime", "project_story")) + tuple(CONTROL_CAPTURE_MAP)
 APPLICATION_DIRECTORY_MAP = {"desktop": "desktop", "designer": "form_designer", "file_manager": "file_manager", "task_manager": "task_manager", "demo": "demo/cpp", "keyboard": "layout/standard_104", "pinyin": "ime/cn/easyvrui_pinyin", "japanese": "ime/jp/easyvrui_japanese",}
 
-def read_cmake_cache(directory):
-    path = directory / "CMakeCache.txt"
-
-    if not path.is_file():
-        raise RuntimeError(f"Configure the workspace's native test build before capturing: {path}")
-
-    return {line.partition(":")[0]: line.partition("=")[2] for line in path.read_text(encoding = "utf-8").splitlines() if ("=" in line) and not line.startswith(("#", "//"))}
-
-def find_build_tool(cache, cmake_path, vcvars_path):
-    compiler = Path(cache["CMAKE_CXX_COMPILER"]).resolve()
-    vc_root = next((parent for parent in compiler.parents if parent.name.casefold() == "vc"), None)
-    make_program = Path(cache["CMAKE_MAKE_PROGRAM"])
-    installed_cmake = ((make_program.parent.parent / "CMake") / "bin") / "cmake.exe"
-    cmake = Path(cmake_path or shutil.which("cmake") or installed_cmake)
-    vcvars = (Path(vcvars_path) if vcvars_path else ((((vc_root / "Auxiliary") / "Build") / "vcvars64.bat") if vc_root else None))
-
-    if (vcvars is None) or (not vcvars.is_file()) or (not cmake.is_file()):
-        raise RuntimeError("Supply --cmake and --vcvars for the Visual Studio tools used by this build.")
-
-    ninja = Path(shutil.which("ninja") or make_program)
-
-    if not ninja.is_file():
-        raise RuntimeError(f"Ninja was not found: {ninja}")
-
-    return cmake.resolve(), vcvars.resolve(), ninja.resolve()
-
-def build_capture(build_directory, toolchain_build, cmake_path, vcvars_path, role_list):
+def build_capture_targets(build_directory, project, role_list):
     if not build_directory.is_relative_to(SITE):
-        raise RuntimeError("Set --native-build to a build directory inside the tutorial checkout.")
+        raise RuntimeError("Choose a capture build directory inside the tutorial checkout.")
 
-    cache = read_cmake_cache(toolchain_build)
-    cmake, vcvars, ninja = find_build_tool(cache, cmake_path, vcvars_path)
-    executable_map = {"ime": ("pinyin", "japanese"), "menubar": ("controls_third",)}
-    name_list = dict.fromkeys(name for role in role_list for name in executable_map.get(role, (role,)))
-    target_list = " ".join(f"tutorial_capture_{name}" for name in name_list)
+    target_list = " ".join(f"tutorial_capture_{role}" for role in role_list)
     cmd = os.environ.get("ComSpec", r"C:\Windows\System32\cmd.exe")
-    batch = (SITE / "tools") / "build_capture.cmd"
-    command = f'"{cmd}" /d /s /c ""{batch}" "{vcvars}" "{cmake}" "{WORKSPACE}" "{build_directory}" "{ninja}" "{target_list}""'
+    batch = SITE / "tools/build_capture.cmd"
+    command = f'"{cmd}" /d /s /c ""{batch}" "{WORKSPACE}" "{build_directory}" "{project}" "{target_list}""'
     subprocess.run(command, cwd = SITE, check = True)
 
 def prepare_fixture(directory):
@@ -73,9 +42,10 @@ def prepare_fixture(directory):
     (directory / "notes.txt").write_text("EasyVRUI tutorial sample\n", encoding = "utf-8")
     (directory / "settings.json").write_text('{\n    "language": "en"\n}\n', encoding = "utf-8")
 
-def stage_installation(directory, distribution, role_list):
-    installer = WORKSPACE / "repo/sdk/engine_interface/deployment/build_install.py"
-    subprocess.run([sys.executable, "-B", str(installer), "install", str(directory), "--build-directory", str(distribution),], cwd = SITE, check = True,)
+def stage_installation(directory, repository, role_list):
+    installer = repository / "install.bat"
+    cmd = os.environ.get("ComSpec", "cmd.exe")
+    subprocess.run(f'"{cmd}" /d /s /c ""{installer}" "{directory}""', cwd = SITE, check = True)
 
     if "desktop" in role_list:
         config = directory / "app/desktop/config.json"
@@ -213,45 +183,33 @@ def capture_locale(stage, installation, build_directory, locale, role_list):
 
     return image_list, part_list
 
-def get_latest_distribution():
-    manifest_list = sorted((WORKSPACE / "build").glob("*/distribution.json"), key = lambda path: path.stat().st_mtime_ns, reverse = True,)
-
-    for manifest in manifest_list:
-        directory = manifest.parent
-
-        if (directory / "bin/easyvrui_engine.exe").is_file():
-            return directory
-
-    raise RuntimeError("Run repo/build.bat first or supply --distribution with the completed build directory.")
-
 def run():
     parser = ArgumentParser(description = "Build current EasyVRUI sources and capture actual UI rasters using the WARP test host.")
     parser.add_argument("--native-build", type = Path, default = WORK / "capture")
-    parser.add_argument("--toolchain-build", type = Path, default = (WORKSPACE / "build") / "native", help = "Read-only CMake cache used to locate Visual Studio tools.",)
-    parser.add_argument("--distribution", type = Path, help = "Completed build directory containing distribution.json. Defaults to the newest completed workspace distribution.",)
+    parser.add_argument("--repository", type = Path, default = WORKSPACE / "repo", help = "EasyVRUI repository containing the independently built components.",)
     parser.add_argument("--output", type = Path, default = OUTPUT)
     parser.add_argument("--parts", type = Path, default = PARTS)
     parser.add_argument("--locale", choices = LOCALE_LIST, action = "append")
     parser.add_argument("--role", choices = ROLE_LIST + ("menubar",), action = "append")
     parser.add_argument("--reuse-binaries", action = "store_true", help = "Use already built capture executables from --native-build/bin.",)
-    parser.add_argument("--cmake", type = Path)
-    parser.add_argument("--vcvars", type = Path)
     option = parser.parse_args()
     build_directory = option.native_build.resolve()
-    distribution = (option.distribution or get_latest_distribution()).resolve()
+    repository = option.repository.resolve()
     destination = option.output.resolve()
     role_list = tuple(dict.fromkeys(option.role or ROLE_LIST))
-    print(f"WARP resources: {distribution}", flush = True)
+    print(f"WARP resources: {repository}", flush = True)
 
     if not option.reuse_binaries:
-        build_capture(build_directory, option.toolchain_build.resolve(), option.cmake, option.vcvars, role_list)
+        executable_map = {"ime": ("pinyin", "japanese"), "menubar": ("controls_third",)}
+        name_list = dict.fromkeys(name for role in role_list for name in executable_map.get(role, (role,)))
+        build_capture_targets(build_directory, SITE / "tools/capture_project.cmake", name_list)
 
     WORK.mkdir(parents = True, exist_ok = True)
 
     with TemporaryDirectory(prefix = "capture_", dir = WORK) as temporary:
         stage = Path(temporary)
         installation = stage / "installation"
-        stage_installation(installation, distribution, role_list)
+        stage_installation(installation, repository, role_list)
         prepare_fixture(stage / "Examples")
         capture_map = {locale: capture_locale(stage, installation, build_directory, locale, role_list) for locale in dict.fromkeys(option.locale or LOCALE_LIST)}
 

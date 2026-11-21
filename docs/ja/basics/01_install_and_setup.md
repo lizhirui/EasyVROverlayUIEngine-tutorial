@@ -3,7 +3,7 @@
 この章では、WindowsでEasyVROverlayUIEngineをソースからビルドし、実行環境をインストールします。
 
 ::: tip 説明
-リポジトリにある`build.bat`と`install.bat`でビルドとインストールを実行できます。CMakeやコンパイラのコマンドを手書きする必要はありません。**Python**だけでVRアプリを開発する場合は、初回だけビルドとインストールを済ませれば、その後はC++コンパイラを設定したり実行したりせずに開発できます。
+ルートの`build.bat`でコンポーネントをビルドし、`install.bat`で実行環境をインストールします。**Python**でVRアプリを開発する場合は、インストール済みのネイティブ拡張を使用できます。
 :::
 
 ---
@@ -17,7 +17,7 @@
 |**OS**|Windows 10または11（64ビット）|EngineはWindowsとDirect3D 11を使用します。現在の対応OSはWindowsです。|
 |**GPUとVR環境**|Direct3D 11対応のGPU、SteamVR、VRヘッドセット|一般的なSteamVRの動作要件を満たしてください。|
 |**Python**|CPython 3.11以降の64ビット版|インストール時に**Add python.exe to PATH**を選択し、CMDで`python`を直接実行できるようにします。|
-|**C++ビルドツール**|Visual Studioの「C++によるデスクトップ開発」ワークロードとWindows SDK|Engine、ネイティブSDK、付属アプリをコンパイルします。Visual Studio付属のCMakeとNinjaを使用できます。|
+|**C++ビルドツール**|C++20に対応するMSVC x64、Windows SDK、CMake 3.24以降、Ninja|Visual Studioの「C++によるデスクトップ開発」ワークロードと、CMakeおよびNinjaのコンポーネントをインストールします。|
 
 ::: warning CMDのみを使用し、PowerShellは使用しないでください。
 ビルドやスクリプトの実行には、Windowsの**コマンドプロンプト（CMD）**を使用します。`Win+R`を押して`cmd`を入力すると起動できます。PowerShellでは引用符、引数、環境変数の扱いがCMDと異なり、ビルドやインストールのスクリプトが正しく動かない場合があります。
@@ -25,52 +25,59 @@
 
 ---
 
-## 手順2　ソースの取得とビルド
+## 手順2　Engine、SDK、付属アプリをビルドする
 
-ここでは、リポジトリが`D:\program\project\EasyVROverlayUIEngine\repo`にあるものとします。別の場所にも配置できます。パスに中国語や空白を含められます。
-
-**CMD**でリポジトリのディレクトリに移動し、`build.bat`を実行します。
+CMDでソースリポジトリのルートに移動し、`build.bat`を実行します。
 
 ```cmd
-cd /d D:\program\project\EasyVROverlayUIEngine\repo
+cd /d "D:\program\project\EasyVROverlayUIEngine\repo"
 build.bat
 ```
 
-コンパイルを高速化する場合は、Release設定と並列ジョブ数を指定できます。次は8ジョブの例です。
+既定の構成はRelease、並列ジョブ数は8です。構成は`--configuration`、ジョブ数は`--parallel`で指定できます。
 
 ```cmd
 build.bat --configuration Release --parallel 8
 ```
 
-### ビルドスクリプトが行う処理
+### コンポーネントごとのビルドディレクトリ
 
-`build.bat`は次の処理を自動で行います。
-1. Visual Studioのx64ツールチェーン、CMake、Ninjaを探します。
-2. **Engine**をコンパイルします。`easyvrui_engine.exe`はGPU描画とSteamVRとの連携を担当するサービスプロセスです。
-3. **ネイティブSDK**をコンパイルします。静的ライブラリ`engine_interface_static.lib`、DLLの`engine_interface.dll`、Pythonのネイティブ拡張`engine_interface_native*.pyd`を生成します。
-4. Desktop、Form Designer、File Manager、Task Manager、C++ Demo、標準104キーの仮想キーボード、中国語・英語・日本語のIMEをコンパイルし、Python Demoと各アプリのリソースを用意します。
+ルートの`build.bat`はCMDでMSVC x64環境を一度初期化し、12個のコンポーネントの`build.bat`を順に呼び出します。各コンポーネントは自身の`build/`で設定とコンパイルを実行します。表の出力先は各コンポーネントからの相対パスです。
 
-::: info オフラインビルド
-サードパーティーの依存ソースはすべてリポジトリに含まれています。中国語ピンインと日本語のIMEが使うRimeエンジンと辞書も含むため、**オフラインでビルド**できます。初回のフルビルドは通常数分かかり、その後の差分ビルドは数秒で終わります。
-:::
+|コンポーネントのディレクトリ|ビルドの出力|
+|---|---|
+|`sdk/engine_interface`|`build/lib/`に静的ライブラリ、DLLのインポートライブラリ、CMakeパッケージ。`build/bin/`にDLL、`build/include/`に公開ヘッダー。|
+|`sdk/api/python`|`build/bin/`にPython SDKパッケージと`engine_interface_native*.pyd`。|
+|`engine`|`build/bin/`に`easyvrui_engine.exe`とSteamVRのアクションリソース。|
+|`app/desktop`、`app/form_designer`、`app/file_manager`、`app/task_manager`、`app/demo/cpp`|それぞれの`build/bin/`に実行ファイルとビルドで生成したリソース。|
+|`app/layout/standard_104`、`app/ime/cn/easyvrui_pinyin`、`app/ime/en/easyvrui_english`、`app/ime/jp/easyvrui_japanese`|それぞれの`build/bin/`に実行ファイル。中国語ピンインと日本語のIMEは`build/bin/rime/`にコンパイル済み辞書も生成します。|
 
-::: tip ビルドエラーの切り分け
-Windows SDKの不足、PATHの競合、Visual Studioワークロードの選択漏れなどで`build.bat`が失敗することがあります。CMDの出力末尾にあるエラーメッセージを確認します。Gemini、GPT、Claudeなどの支援ツールにエラーの内容を渡し、不足するコンポーネントを調べることもできます。
-:::
+### コンポーネントを個別にビルドする
 
-既定の出力先は、ソースリポジトリの外にある`../build/easyvrui_distribution`です。ビルド時に`--build-directory`で別の場所を指定した場合は、インストール時にも同じディレクトリを指定します。
+各コンポーネントのディレクトリから`build.bat`を直接実行できます。Pythonのネイティブ拡張やC++アプリを個別にビルドする場合は、先に`sdk/engine_interface`を同じ構成でビルドします。続くビルドは`sdk/engine_interface/build/`のSDKを使います。次の例ではSDKをビルドしてからDesktopを個別にビルドします。
+
+```cmd
+cd /d "D:\program\project\EasyVROverlayUIEngine\repo\sdk\engine_interface"
+build.bat --configuration Release
+cd /d "D:\program\project\EasyVROverlayUIEngine\repo\app\desktop"
+build.bat --configuration Release
+```
+
+ビルドが成功すると、各コンポーネントの`build/configuration.txt`に構成を記録します。依存ソース、Rimeのスキーマと辞書はリポジトリに含まれています。ツールチェーンをインストールすれば、オフラインでビルドできます。
 
 ---
 
 ## 手順3　実行環境をインストールする
 
-ビルドが完了したら、`install.bat`を実行してプログラムとSDKを指定のディレクトリに配置します。以下では`D:\Tools\EasyVRUI`にインストールします。
+12個のコンポーネントをビルドしたら、ソースリポジトリのルートから`install.bat`を実行します。CMDのインストーラーは各コンポーネントの`build/`を参照し、すべてのビルドが完了し、構成がそろっていることを確認します。Python DemoとC++ APIヘッダーは各ソースディレクトリからコピーします。インストール先にはソースリポジトリと分離したディレクトリを選びます。
 
 ```cmd
+cd /d "D:\program\project\EasyVROverlayUIEngine\repo"
 install.bat "D:\Tools\EasyVRUI"
 ```
 
-パス引数を省略して`install.bat`を実行すると、CMDでインストール先の入力を求められます。
+インストール先の引数を省略すると、`install.bat`が入力を求めます。
+
 
 新規インストールでは次の構成になります。アプリの相対パスは`repo/app/`のディレクトリ構成に対応します。
 
@@ -87,17 +94,21 @@ D:\Tools\EasyVRUI\
 │   │   └── config.json
 │   ├── form_designer\
 │   │   ├── easyvrui_form_designer.exe
-│   │   └── easyvrui_form_designer.easyvrui
+│   │   ├── easyvrui_form_designer.easyvrui
+│   │   └── resources\             # Form Designerのリソース
 │   ├── file_manager\
 │   │   ├── easyvrui_file_manager.exe
-│   │   └── easyvrui_file_manager.easyvrui
+│   │   ├── easyvrui_file_manager.easyvrui
+│   │   ├── easyvrui_volume_query.exe # ボリューム照会用の補助プログラム
+│   │   └── file_manager.json         # ファイルの関連付け
 │   ├── task_manager\
 │   │   ├── easyvrui_task_manager.exe
 │   │   └── easyvrui_task_manager.easyvrui
 │   ├── demo\
 │   │   ├── cpp\
 │   │   │   ├── easyvrui_demo_cpp.exe
-│   │   │   └── easyvrui_demo_cpp.easyvrui
+│   │   │   ├── easyvrui_demo_cpp.easyvrui
+│   │   │   └── resources\          # C++ Demoのリソース
 │   │   └── python\
 │   │       ├── main.py
 │   │       ├── demo\               # Python Demoの内部UIモジュールと画像リソース
@@ -114,7 +125,9 @@ D:\Tools\EasyVRUI\
 │           └── rime\japanese\      # 日本語IME専用のRime辞書・スキーマデータ
 └── sdk\
     ├── api\
-    │   ├── cpp\include\            # C++公開ヘッダ
+    │   ├── cpp\
+    │   │   ├── include\            # C++公開ヘッダ
+    │   │   └── third_party\json\    # C++ API付属のJSONヘッダー
     │   └── python\
     │       ├── easyvrui\           # Python SDKラッパーパッケージ
     │       ├── engine_interface_native*.pyd
@@ -129,7 +142,7 @@ D:\Tools\EasyVRUI\
         └── bin\engine_interface.dll
 ```
 
-`installation.json`はインストール先のルートを識別し、ビルド構成、Pythonのバージョン、アプリマニフェストのパスを記録します。`bin/config.json`の`desktop`と`provider_list`では、`bin/`からの相対パス`../app/...`で実行ファイルを指定します。`app/desktop/config.json`には、Desktopのディレクトリからの相対パスで付属アプリを登録します。例は`../demo/cpp/easyvrui_demo_cpp.easyvrui`です。各[アプリマニフェスト](/ja/reference/application_manifest)の`launch.executable`、`launch.script`、子プロセスの作業ディレクトリは、そのマニフェストが置かれた場所を基準に決まります。
+新規インストール時に`install.bat`が`bin/config.json`を作成し、Engineが初回起動時に接続用の認証情報を生成します。`installation.json`はインストール先のルートを識別し、ビルド構成、Pythonのバージョン、アプリマニフェストのパスを記録します。`bin/config.json`の`desktop`と`provider_list`では、`bin/`からの相対パス`../app/...`で実行ファイルを指定します。`app/desktop/config.json`には、Desktopのディレクトリからの相対パスで付属アプリを登録します。例は`../demo/cpp/easyvrui_demo_cpp.easyvrui`です。各[アプリマニフェスト](/ja/reference/application_manifest)の`launch.executable`、`launch.script`、子プロセスの作業ディレクトリは、そのマニフェストが置かれた場所を基準に決まります。
 
 付属のC++アプリとPythonのネイティブ拡張は、既定で`engine_interface_static`を静的リンクします。`engine_interface.lib`はDLLのインポートライブラリで、共有リンクを選んだアプリが`engine_interface.dll`を使用します。Engine、SDK、アプリの組み込み言語パックは各バイナリに組み込まれます。アプリではSDKの`language_pack.load_directory()`で独自の言語パックを読み込めます。
 

@@ -1,6 +1,18 @@
 .tutorial-site {
   --tutorial-page-width: 104rem;
-  --tutorial-gutter: clamp(16px, 2.8vw, 48px);
+  --tutorial-gutter: 128px;
+}
+
+@media (max-width: 1023px) {
+  .tutorial-site {
+    --tutorial-gutter: clamp(32px, 8vw, 80px);
+  }
+}
+
+@media (max-width: 767px) {
+  .tutorial-site {
+    --tutorial-gutter: clamp(16px, 5vw, 32px);
+  }
 }
 
 .tutorial-site .VPNav {
@@ -67,7 +79,7 @@
   border-bottom-color: transparent;
 }
 
-@media (min-width: 768px) and (max-width: 1120px) {
+@media (min-width: 768px) and (max-width: 1320px) {
   .tutorial-site .VPNavBarSearch .DocSearch-Button {
     width: auto;
     padding: 0 10px;

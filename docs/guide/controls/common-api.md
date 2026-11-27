@@ -27,12 +27,12 @@
 |属性|C++|用途|
 |---|---|---|
 |`rect`|`get_rect`、`set_rect`|逻辑矩形，由左、上、宽、高组成|
-|`background_color`|`get_background_color`、`set_background_color`|控件背景色，按具体控件绘制规则显示|
+|`background_color`|`get_background_color`、`set_background_color`|控件背景色，默认由`render_style`按控件类别分配（如透明容器、输入槽`INPUT_BACKGROUND_COLOR`、窗口`WINDOW_BACKGROUND_COLOR`、按钮/顶栏`CONTROL_BACKGROUND_COLOR`）|
 |`tooltip_text`|`get_tooltip_text`、`set_tooltip_text`|悬停提示文字，空字符串关闭提示|
 |`visible`、`enabled`|`get_visible`、`set_visible`、`get_enabled`、`set_enabled`|显示和交互开关|
 |`tab_index`|`get_tab_index`、`set_tab_index`|可聚焦控件的Tab顺序，初始为0|
 |`focusable`、`focused`|`is_focusable`、`get_focused`|只读，控件可否获得焦点以及当前是否持有焦点|
-|`absolute_rectangle`|`get_absolute_rectangle`|只读，解析后的表面内矩形|
+|`absolute_rectangle`|`get_absolute_rectangle`|只读，相对完整渲染表面左上角的逻辑矩形（窗口自身返回完整表面矩形）|
 |`owning_window`|`get_owning_window`|只读，所属的`window`|
 
 |方法|用途|
@@ -56,7 +56,7 @@
 |属性|C++|用途|
 |---|---|---|
 |`foreground_color`|`get_foreground_color`、`set_foreground_color`|文字前景色|
-|`font`|`get_font`、`set_font`|字体族、字号、粗体和斜体。Python使用`font`，C++使用`font_t`|
+|`font`|`get_font`、`set_font`|字体族、字号、粗体、斜体、下划线（`underline`）与删除线（`strikethrough`）。Python使用`font`，C++使用`font_t`|
 
 |事件|参数与用途|
 |---|---|

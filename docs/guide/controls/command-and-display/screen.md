@@ -1,6 +1,6 @@
 # screen
 
-`screen`将Engine侧指定显示输出的采集画面绘制到空间界面。应用选择`screen_id`并订阅来源状态，渲染后端负责采集与纹理提交。典型用途包括头显内并排查看桌面输出、监视应用状态和观察临时参考画面。 继承成员见[公共控件接口](/guide/controls/common-api#control)。
+`screen`将Engine侧指定显示输出的采集画面绘制到空间界面，并支持按开关将激光指针、键盘与IME输入转发到对应Windows显示器。便携模式下由Engine本进程采集桌面，服务托管模式下由`easyvrui_screen_helper.exe`跨输入桌面采集并转发键鼠。开箱即用的多显示器屏幕查看器见[EasyVRScreen](/basics/02_vr_operations_and_apps#2-easyvrscreen多显示器vr屏幕查看器)。继承成员见[公共控件接口](/guide/controls/common-api#control)。
 
 ## 默认外观
 
@@ -24,6 +24,10 @@ C++用表中的方法读写属性，Python按同名属性访问。回调接收`s
 |---|---|---|
 |`screen_id`|`get_screen_id`、`set_screen_id`|`uint64_t`，默认0，选择Engine识别的显示输出编号。|
 |`screen_available`|`get_screen_available`|只读，初始假，跟随匹配当前窗口和显示输出的状态消息。|
+|`capture_frame_rate`、`render_frame_rate`|`get_capture_frame_rate`、`get_render_frame_rate`|只读`double`，分别表示该显示器最近1秒捕获新帧的FPS与所属窗口成功提交可见纹理的FPS，不可用时归零。|
+|`accept_pointer`|`get_accept_pointer`、`set_accept_pointer`|默认`false`；开启后将画面区域内的激光移动、扳机按下/松开、拖拽和滚轮转发为对应显示器的鼠标操作。|
+|`accept_keyboard`|`get_accept_keyboard`、`set_accept_keyboard`|默认`false`；开启后控件可获取焦点并将按键及IME提交转发给Windows前台应用。|
+|`enable_virtual_keyboard`、`enable_ime`|`get_enable_virtual_keyboard`、`set_enable_virtual_keyboard`、`get_enable_ime`、`set_enable_ime`|分别默认`true`与`false`，控制`accept_keyboard`聚焦时是否唤起虚拟键盘与IME。|
 |`rect`、`background_color`|`get_rect`、`set_rect`、`get_background_color`、`set_background_color`|继承的目标矩形和背景色。画面不可用时仍绘制控件背景。|
 
 ### 方法
@@ -38,8 +42,10 @@ C++用表中的方法读写属性，Python按同名属性访问。回调接收`s
 |事件|参数类型|触发条件|
 |---|---|---|
 |`on_screen_id_changed`|`event_args_t`|编号实际变化。|
+|`on_accept_pointer_changed`、`on_accept_keyboard_changed`、`on_enable_virtual_keyboard_changed`、`on_enable_ime_changed`|`event_args_t`|对应桌面指针、键盘或输入组件开关变化。|
 |`on_screen_unavailable`|`event_args_t`|从可用转为不可用。切换编号也会重置现有可用状态。|
 |`on_screen_restored`|`event_args_t`|从不可用转为可用。|
+|`on_capture_frame_rate_changed`、`on_render_frame_rate_changed`|`event_args_t`|捕获帧率或窗口渲染提交帧率变化。|
 
 ## 无头截图与实际采集
 

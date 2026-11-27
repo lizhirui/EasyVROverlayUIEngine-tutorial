@@ -58,9 +58,10 @@ Three-tier interface stack: ![input bar, candidate box, and virtual keyboard for
 |**`Alt`**|Physical keyboard mode and the current window has an available `menubar`|Show mnemonics underlines when held. Pressing separately and releasing switches between menu keyboard navigation.|
 |**`Ctrl + Shift`**|Physical keyboard mode + current window present|Switch between different IMEs within the current language|
 |**`Tab` / `Shift + Tab`**|Current window present|Switch focus forward/backward in Tab order among controls within the window|
-|**`PrintScreen`**|Physical keyboard mode + current window present|Capture the current VR perspective screen and copy it to the Windows clipboard.|
-|**`Ctrl + Pause`**|**Global valid**(no need to select a window first)|Display or hide the**Desktop (VR Desktop Launcher)**|
-|**`Ctrl + Alt + Pause`**|**Global valid**|Reset the **`body` Tracking Center**and**`world` Space Offset**, pulling the window reference back to directly in front of the current headset.|
+|**`PrintScreen`**|Physical keyboard mode + current window present|Capture the current VR view as PNG and Windows bitmap to the clipboard, then show a ~2s centered pass-through toast|
+|**`Alt + PrintScreen`**|Physical keyboard mode + current window present|Capture the flat D3D render texture of the active normal window to the clipboard, then show a ~2s centered pass-through toast|
+|**`Ctrl + Pause`**|**Global** (no active window required)|Show or hide **Desktop (VR Desktop Launcher)**|
+|**`Ctrl + Alt + Pause`**|**Global**|Reset the **`body` tracking center** and **`world` offset**, displaying a red cross at the new World origin for 15 seconds|
 
 ::: warning Troubleshooting the Pause shortcut
 Before enabling the physical keyboard mode, please use a laser to click on the target VR window to ensure that the Engine has established a valid current window. After exiting the physical keyboard mode, the key presses will be sent back to the Windows desktop.
@@ -76,25 +77,30 @@ The applications and input components provided with the installation are located
 
 ![Desktop application launcher](/images/en/desktop.png)
 
-The image shows the Desktop under blank user configuration. The five icons correspond to C++ Demonstration, Python Demonstration, File Manager, Form Designer, and Task Manager in the system configuration.
+The installer registers six built-in applications in `app/desktop/config.json`: C++ Demo, Python Demo, EasyVRScreen (Screen Viewer), File Manager, Form Designer, and Task Manager. Built-in GUI apps report operational errors via VR `messagebox` / `show_messagebox` dialogs.
 
-- **Exit method**: Press `Ctrl+Pause`. The Engine uses `app/desktop/easyvrui_desktop.exe` in the configuration.
-- **Main functions**: Each time you exit, it references `world` to position itself in front of the current headset. The Desktop merges the built-in applications registered with `app/desktop/config.json` and the custom applications registered with `%USERPROFILE%\easyvrui\desktop\config.json` in memory by application ID. Add and remove only write user configurations.
-- **Close behavior**: Clicking the close button in the upper right corner only hides the Desktop window; the background process continues to run. Pressing `Ctrl + Pause` again will immediately restore it.
+- **Show / Hide**: Press `Ctrl+Pause`. Engine uses `app/desktop/easyvrui_desktop.exe` (installed with `run_as_administrator: true` by default).
+- **Main functions**: Each time it is shown, Desktop positions itself in front of the current headset in `world` space. It merges system entries from `app/desktop/config.json` with user entries from `%USERPROFILE%\easyvrui\desktop\config.json` by application ID, and supports manifest `run_as_administrator` badges and elevated launch.
+- **Close behavior**: Clicking the close button in the upper right corner hides the Desktop window while keeping the process running; pressing `Ctrl + Pause` shows it again immediately.
 
-### 2. File Manager (VR File Manager)
+### 2. EasyVRScreen (Multi-Monitor VR Screen Viewer)
+
+- **Open method**: Launch from Desktop or run `app/easyvrscreen/easyvrui_screen.exe` (`app/easyvrscreen/easyvrscreen.easyvrui`).
+- **Main functions**: Creates an independent frameless, curvable VR window per Windows monitor with hot-plug synchronization. Hovering near the bottom edge reveals a toolbar with Pointer, Keyboard, Virtual Keyboard, and IME toggles, live Capture/Render FPS readouts, Reset/Pin controls, and Exit. Settings are stored in `%LOCALAPPDATA%\easyvrui\easyvrscreen\config.json`.
+
+### 3. File Manager (VR File Manager)
 
 ![File Manager](/images/en/file_manager.png)
 
-- **Open method**: Launch from the Desktop, or run `app/file_manager/easyvrui_file_manager.exe` directly.
-- **Main functions**: Directly browse local disks and directories in VR, view paths, and launch applications. Supports opening multiple window instances simultaneously.
+- **Open method**: Launch from Desktop or run `app/file_manager/easyvrui_file_manager.exe` directly.
+- **Main functions**: Browse local drives, mapped network drives (showing UNC targets), and `\\server` / `\\server\share` network paths with a breadcrumb/editable address bar, background volume query pool (`easyvrui_volume_query.exe`), `.easyvrui` launching, file associations (`file_manager.json`), and elevated launch when permitted.
 
-### 3. Task Manager (VR Task Manager)
+### 4. Task Manager (VR Task Manager)
 
 ![Task Manager](/images/en/task_manager.png)
 
-- **Open method**: Launch from the Desktop, or run `app/task_manager/easyvrui_task_manager.exe` directly.
-- **Main functions**: Real-time view of all application sessions connected to the Engine, the `name` and `title` of each window, memory usage, and CPU/GPU utilization. Supports closing specified windows or terminating application processes (Desktop and input components are protected by the system).
+- **Open method**: Launch from Desktop or run `app/task_manager/easyvrui_task_manager.exe` directly.
+- **Main functions**: View connected application sessions, window `name`/`title`, memory, and CPU/GPU metrics, plus a dedicated **GPU** tab supporting adapter selection, PID/program grouping, sorting, dedicated/shared VRAM, 3D/Copy utilization, and confirmed process termination.
 
 ### 4. Independent Virtual Keyboard (`standard_104`)
 
@@ -113,4 +119,4 @@ Above is the Pinyin candidate window, and below is the Japanese candidate window
 - **EasyVRUI English** is located at `app/ime/en/easyvrui_english/easyvrui_ime_english.exe` and provides direct English input.
 - **EasyVRUI Japanese** is located at `app/ime/jp/easyvrui_japanese/easyvrui_ime_japanese.exe`. The Rime dictionary is stored in `rime/japanese/` of this application directory, and user data is in `%USERPROFILE%\easyvrui\japanese`. It supports space conversion, Enter submission, conversion between `F6` and `F10`, as well as mode switching through `Alt+Backquote` or `Ctrl/Alt/Shift+CapsLock`.
 
-Then run the first window example of [,](/en/basics/03_first_window). Compare the input and event distribution with the initial appearance and the screenshot after clicking.
+Then run the first window example of [Create and run your first window](/en/basics/03_first_window). Compare the input and event distribution with the initial appearance and the screenshot after clicking.

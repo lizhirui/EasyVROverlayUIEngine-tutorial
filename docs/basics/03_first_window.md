@@ -6,7 +6,7 @@
 
 ## SDK路径配置
 
-编写代码前，配置工程或环境变量来定位已安装的SDK。以下命令假设安装根目录为`D:\Tools\EasyVRUI`。
+编写代码前，配置工程或环境变量来定位已安装的SDK。若通过[服务模式安装](/basics/01_install_and_setup)，新开的CMD可直接使用系统环境变量`%EASYVROVERLAYUIENGINE_HOME%`替换下方便携安装示例中的`D:\Tools\EasyVRUI`（注意`EASYVROVERLAYUIENGINE_HOME`指向安装根目录，区别于覆盖引擎可执行文件路径的`EASYVRUI_ENGINE`）。
 
 ::: code-group
 ```cmd [Python：配置已安装的SDK]
@@ -43,7 +43,7 @@ easyvrui_deploy_runtime(my_first_vr_window "${EASYVRUI_API_LINK_SHARED}")
 
 ## 第一个`window`示例
 
-先启动SteamVR和安装目录中的`bin/easyvrui_engine.exe`。然后将以下代码保存为`first_window.py`或`main.cpp`：
+确认SteamVR及Engine正在运行（服务安装由Windows服务自动托管Engine，便携安装手动启动`bin/easyvrui_engine.exe`）。然后将以下代码保存为`first_window.py`或`main.cpp`：
 
 ::: code-group
 ```python [Python（first_window.py）]

@@ -43,7 +43,7 @@ C++ properties can be read and written through the access methods in the table; 
 
 The routine displays the connection page title, connection results with foreground and background colors, and next-step prompts. The three `label` elements are responsible for the first-level title, status, and supplementary explanations, respectively.
 
-First, prepare, build, and install](/en/basics/01_install_and_setup) using [environment. Open an x64 CMD with MSVC configured in the root directory of the tutorial repository, using the actual installed SDK path.
+First start Engine as described in [Prerequisites, build, and installation](/en/basics/01_install_and_setup). Open an x64 CMD with MSVC configured in the root directory of the tutorial repository, using the actual installed SDK path.
 
 ### C++
 

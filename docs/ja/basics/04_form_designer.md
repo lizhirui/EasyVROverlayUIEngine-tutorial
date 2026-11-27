@@ -13,12 +13,12 @@ SteamVRとEngineを起動したら、DesktopでForm Designerを開くか、`D:\T
 1. **上部の`menubar`と`toolbar`**
    - **ファイル／表示／レイアウト／実行／エクスポート**。`.easyvruifrm`の新規作成と読み込み、グリッドへのスナップ、キャンバスの拡大縮小、整列・幅と高さの統一・重なり順の調整に対応します。**VRプレビューの開始・停止**、**PythonやC++へのエクスポート**もここから操作します。
 2. **左側のツールボックスとオブジェクトツリー**
-   - **コントロールバー**。`label`、`button`、`textbox`、`combobox`、`listbox`、`listview`、`grid`、`checkbox`、`radiobutton`、`numericupdown`、`slider`、`progressbar`、`panel`、`scrollpanel`、`tabcontrol`、`treeview`、`image`、`screen`、`splitter`、`menubar`などのすべての内蔵コントロールを提供します。
+   - **コントロールバー**。`label`、`rich_label`、`button`、`textbox`、`combobox`、`datetime_selector`、`listbox`、`listview`、`grid`、`checkbox`、`radiobutton`、`numericupdown`、`slider`、`progressbar`、`panel`、`scrollpanel`、`tabcontrol`、`treeview`、`image`、`screen`、`splitter`、`menubar`、`toolbar`、`blank`などの登録済みコントロールを提供します。
    - **オブジェクトツリー**はコントロールの親子階層を表示します。コントロールが重なっていても、ツリーから目的のコントロールを選択できます。
 3. **中央のデザインキャンバス**
-   - VRウィンドウのレイアウトを画面上で編集します。グリッドへのスナップ、範囲選択による複数選択、ドラッグでのサイズ変更、変更の取り消しとやり直し（`Ctrl+Z`／`Ctrl+Y`）に対応します。
+   - VRウィンドウのレイアウトを画面上で編集します。グリッドへのスナップ、範囲選択による複数選択、ドラッグでのサイズ変更、変更の取り消しとやり直し（`Ctrl+Z`／`Ctrl+Y`）に対応します。`tabcontrol`のタブをクリックすると永続化される`selected_index`とは独立してデザイン時の表示ページを切り替えられます。
 4. **右側のプロパティ欄**
-   - `name`は一番上に固定され、残りの項目は名前順に並びます。テキスト、色、フォント、曲率、`tooltip_text`、`tag`などを編集できます。
+   - `name`は一番上に固定され、残りの項目は名前順に並びます。`datetime_selector`の`datetime`編集時はネイティブの`datetime_selector`を埋め込んだダイアログが開き、`.easyvruifrm`に`YYYY-MM-DD HH:MM:SS`または`null`として保存されます。プレビュー中は実行時プロパティを読み取り専用表示し、ロック／スナップショットおよびデザインへの反映に対応します。また開いているファイルの外部変更や削除を監視し、再読み込みや上書きの確認を行います。
 
 ---
 
@@ -74,8 +74,8 @@ SteamVRとEngineを起動したら、DesktopでForm Designerを開くか、`D:\T
 ## コードのエクスポートとアプリ側の処理
 
 レイアウトができたら、**エクスポート → Pythonをエクスポート**または**エクスポート → C++をエクスポート**を選択します。
-- Pythonでは、`.easyvruifrm`と同じディレクトリに`quick_shout_window.py`を生成します。
-- C++では、同じディレクトリに`quick_shout_window.h`と`quick_shout_window.cpp`を生成します。各コントロールの初期化はコンストラクターに含まれます。
+- Pythonでは、`.easyvruifrm`と同じディレクトリに`<フォーム名>_ui.py`（例：`quick_shout_window_ui.py`、クラス名`quick_shout_window_ui`）を生成します。
+- C++では、同じディレクトリに`<フォーム名>_ui.h`と`<フォーム名>_ui.cpp`（例：`quick_shout_window_ui.h/.cpp`、クラス名`quick_shout_window_ui`）を生成し、コンストラクター内で各コントロールを初期化します。
 
 ### アプリ側でイベント処理を実装する
 

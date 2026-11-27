@@ -35,7 +35,7 @@ features:
 
 |編|学習内容|
 |---|---|
-|[基礎編](/ja/basics/00_why_easyvrui)|[インストール先と起動](/ja/basics/01_install_and_setup)、SteamVRの操作、`window`の作成、フォーム設計とコード出力|
+|[基礎編](/ja/basics/00_why_easyvrui)|[インストール先とサービス設定](/ja/basics/01_install_and_setup)、[SteamVRの操作と付属アプリ（EasyVRScreenを含む）](/ja/basics/02_vr_operations_and_apps)、`window`の作成、フォーム設計とコード出力|
 |[コントロール編](/ja/guide/)|コントロールごとにプロパティ、メソッド、イベントを調べ、付属のC++とPythonのサンプルを実行します。|
 |[実践編](/ja/projects/01_vrc_chatbox)|VRChatのOSCチャットツール、ログと写真の管理、アバターパラメーターのパネル、手首HUD、リモートアプリを作成します。|
 |[応用編](/ja/advanced/01_architecture)|EngineとSDKの役割を起点に、TLS、セッション、描画、入力のドレイン、空間を扱う数学を解説します。|

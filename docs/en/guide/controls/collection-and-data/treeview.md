@@ -63,7 +63,7 @@ The `tag` node can store stable business identifiers. The title and expansion st
 
 Run "Task Classification", expand "Synchronous Tasks", and select "Check Report". Choose a callback to read text from `event.node` and update the status.
 
-Prepare, build, and install the](/en/basics/01_install_and_setup) Engine according to the [environment. Execute the command in the x64 Developer CMD of the tutorial root directory, and replace the SDK installation path in the example.
+First start Engine as described in [Prerequisites, build, and installation](/en/basics/01_install_and_setup). Execute the command in the x64 Developer CMD of the tutorial root directory, and replace the SDK installation path in the example.
 
 ### C++
 

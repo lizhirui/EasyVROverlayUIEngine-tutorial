@@ -188,10 +188,10 @@
 |直线|`draw_line`|两点`x1/y1`与`x2/y2`，带颜色和线宽|
 |椭圆和圆|`fill_ellipse`、`outline_ellipse`|`ellipse`内是中心和双半径，半径相同即为圆|
 |圆角|`fill_rounded_rectangle`、`outline_rounded_rectangle`|矩形及`radius_x/radius_y`|
-|文本|`draw_text`|文本、`rectangle`、颜色、`font`和水平居中标志`center`|
+|文本|`draw_text`、`draw_rich_text`|`draw_text`提供文本、`rectangle`、颜色、`font`和水平居中标志`center`；`draw_rich_text`提供片段列表、默认字体与颜色、多行开关及水平/垂直对齐|
 |裁剪|`push_clip`、`pop_clip`|推入要给矩形，每个节点的栈要平衡|
 |图像|`draw_image`|源宽高、未预乘RGBA的`pixel_data`、目标矩形、`opacity`|
-|桌面|`draw_screen`|宿主机采集用的`screen_id`与目标矩形|
+|桌面|`draw_screen`|宿主机采集用的`screen_id`、目标矩形及可选`accept_pointer`（默认`false`，控制是否用激光落点对齐光标热点）|
 |路径|`fill_path`、`outline_path`|带填充规则和段列表的`path`，轮廓另有线宽|
 
 路径与直接矩形相比，能携带更多曲线。先`move`定义一个子路径起点，再连接`line`线段、`quadratic`二次贝塞尔、`cubic`三次贝塞尔或`arc`椭圆弧。`quadratic`有一个控制点，`cubic`有两个控制点。控制点控制曲线弯向，用于生成形状，而图形一般不必穿过控制点。`close`从末点连接回子路径起点，新`move`可再开始一段。填充规则`even_odd`根据穿线次数的奇偶性判断内部，`non_zero`根据带方向的绕行次数判断内部。两重同向轮廓下，内轮廓在两个规则里可以有不同填色。调试一个图标忽然没镂空时，要核对原路径方向和填充规则。
@@ -250,7 +250,7 @@ DirectWrite负责处理文字布局和字形。文本命令给出字串、字体
 
 可用一个算例理解预乘。红色半透明像素用归一化量写成`(1,0,0,0.5)`，预乘后颜色为`(0.5,0,0)`。叠在不透明蓝色背景上，常用的源覆盖公式是`C_out=C_src_premultiplied+(1−a_src)·C_dst_premultiplied`，得到约`(0.5,0,0.5)`。若误把尚未预乘的红值`1`直接用于这条公式，红边会过亮。相反，如果预乘两次，半透明元素会异常暗。调试透明边缘时先确认是颜色解释顺序、源数据格式还是目标Alpha模式出错。直接调一个透明度常量容易掩盖真正错误。
 
-屏幕捕获与图片略有不同。屏幕是宿主机实时内容，通过显示设备采集，带有自己的纹理和更新状态。采到的桌面一般按不透明来源使用。对一块屏幕连续观察时，`present`中的`screen_id`和位置可能不变，而新的采集帧持续让目标窗口重绘。因此“布局更新”“静态图像资源”和“外部动态纹理”必须用独立脏源处理。观察屏幕不可用时，可用`screen_state`知道采集可用性变化，先查显示器是否还存在以及采集会话能否正常恢复。
+屏幕捕获与图片略有不同。屏幕是宿主机实时内容，便携模式下由Engine本进程采集，服务托管模式下由Helper采集并经共享纹理交给Engine绘制并合成独立光标；等尺寸采用线性采样，缩放采用高质量三次插值（普通窗口同时生成提交纹理的Mipmap链以提升远距离清晰度）。对一块屏幕连续观察时，`present`中的`screen_id`和位置可能不变，而新的采集帧持续让目标窗口重绘。因此“布局更新”“静态图像资源”和“外部动态纹理”必须用独立脏源处理。观察屏幕不可用或帧率时，可通过`screen_state`查看`available`、`width/height`、`capture_frame_rate`与`render_frame_rate`。
 
 ## 7.Engine回放、双缓冲与SteamVR合成
 

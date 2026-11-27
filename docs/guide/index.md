@@ -4,8 +4,8 @@
 
 |分组|控件章节|
 |---|---|
-|窗体与文本|[window](/guide/controls/window-and-text/window)、[label](/guide/controls/window-and-text/label)、[button](/guide/controls/window-and-text/button)、[textbox](/guide/controls/window-and-text/textbox)|
-|选择与状态|[checkbox](/guide/controls/selection-and-status/checkbox)、[radiobutton](/guide/controls/selection-and-status/radiobutton)、[progressbar](/guide/controls/selection-and-status/progressbar)、[slider](/guide/controls/selection-and-status/slider)、[numericupdown](/guide/controls/selection-and-status/numericupdown)|
+|窗体与文本|[window](/guide/controls/window-and-text/window)、[label](/guide/controls/window-and-text/label)、[rich_label](/guide/controls/window-and-text/rich_label)、[button](/guide/controls/window-and-text/button)、[textbox](/guide/controls/window-and-text/textbox)|
+|选择与状态|[checkbox](/guide/controls/selection-and-status/checkbox)、[radiobutton](/guide/controls/selection-and-status/radiobutton)、[progressbar](/guide/controls/selection-and-status/progressbar)、[slider](/guide/controls/selection-and-status/slider)、[numericupdown](/guide/controls/selection-and-status/numericupdown)、[datetime_selector](/guide/controls/selection-and-status/datetime_selector)|
 |集合与数据|[combobox](/guide/controls/collection-and-data/combobox)、[listbox](/guide/controls/collection-and-data/listbox)、[treeview](/guide/controls/collection-and-data/treeview)、[listview](/guide/controls/collection-and-data/listview)、[grid](/guide/controls/collection-and-data/grid)|
 |布局与容器|[panel](/guide/controls/layout-and-container/panel)、[scrollpanel](/guide/controls/layout-and-container/scrollpanel)、[splitter](/guide/controls/layout-and-container/splitter)、[tabcontrol](/guide/controls/layout-and-container/tabcontrol)（含[tabpage](/guide/controls/layout-and-container/tabcontrol#tabpage)）|
 |命令与显示|[menubar](/guide/controls/command-and-display/menubar)、[toolbar](/guide/controls/command-and-display/toolbar)、[image](/guide/controls/command-and-display/image)、[screen](/guide/controls/command-and-display/screen)、[blank](/guide/controls/command-and-display/blank)|

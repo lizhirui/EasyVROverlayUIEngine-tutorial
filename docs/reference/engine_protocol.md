@@ -1,8 +1,41 @@
 # Engine接口参考
 
-安装后的Engine可执行文件为`bin/easyvrui_engine.exe`。Engine负责VR跟踪、激光命中、窗口表面、图形资源和输入路由。SDK管理控件、记录绘图指令并分派应用事件。
+Engine的可执行文件为`easyvrui_engine.exe`。Engine负责VR跟踪、激光命中、窗口表面、图形资源和输入路由。SDK管理控件、记录绘图指令并分派应用事件。
 
-SDK在调用进程所在机器读取应用清单并启动程序，入口为`launch_application()`。Engine提供`application_list`和`application_terminate`管理会话。应用在握手中提供非空`name`，并自行协调单实例。
+## Windows服务托管
+
+`bin/easyvrui_service.exe`作为`EasyVROverlayUIEngine`在Session 0运行。服务根据活动控制台会话和登录标识在当前用户的默认桌面启动Engine（登录用户具备管理员权限时使用关联的管理员令牌）以连接SteamVR，同时在该会话中以SYSTEM身份运行`easyvrui_screen_helper.exe`，用于抓屏和桌面输入。会话切换时服务停止两个受管进程，再为目标用户启动新实例。启动时清理同一安装目录、同一控制台会话内的旧实例。
+
+停止或关闭服务时，Engine和抓屏代理通过登录会话限定的事件收到退出通知。服务等待正常退出，超时由同一个Job Object回收两个进程。Job Object同时负责服务异常终止后的进程清理，两个受管进程通过监督互斥锁检测父服务退出。托管模式从安装目录读取配置。管理员可在`bin/config.json`中配置固定远程凭据，缺省时Engine为本次运行生成凭据。
+
+抓屏代理启动后创建D3D11设备，并在Engine请求画面期间检查当前输入桌面。桌面名称变化或Desktop Duplication返回`DXGI_ERROR_ACCESS_LOST`时，代理通过`OpenInputDesktop`和`SetThreadDesktop`切换抓屏线程，再重建显示器枚举和`IDXGIOutput1::DuplicateOutput`。帧写入带`D3D11_RESOURCE_MISC_SHARED_NTHANDLE`和keyed mutex的共享纹理，句柄复制到本次由服务启动的Engine进程。Engine将纹理复制到渲染设备后提交给`screen`控件。
+
+Helper通过重叠I/O等待管道请求，同时监听停止信号和Engine进程退出。队列优先处理待发送的鼠标及键盘请求，并合并连续且属于同一显示器的鼠标移动。
+
+Helper的Named Pipe DACL只允许SYSTEM和当前登录会话。连接建立后使用`GetNamedPipeClientProcessId`核对对端PID和进程创建时间，两者均须与服务本次启动的Engine身份一致。Helper支持显示器枚举、抓帧、释放纹理、`inject_pointer`和`inject_keyboard`。输入请求在活动输入桌面执行，输入内容仅用于当前转发，不记录。
+
+在CMD中执行以下命令安装并查询服务。安装命令须显式指定本地磁盘上的绝对目录，路径支持中文和空格。省略目录时，脚本向标准错误输出用法并返回退出码2。安装程序通过Windows管理员确认取得服务操作权限。服务和Helper以SYSTEM身份运行，服务安装须使用管理员保护的目录。
+
+```bat
+install.bat "%ProgramFiles%\EasyVRUI"
+"%ProgramFiles%\EasyVRUI\bin\easyvrui_service.exe" --status
+```
+
+服务安装成功时，安装脚本将系统环境变量`EASYVROVERLAYUIENGINE_HOME`设为规范化后的安装根目录，例如`D:\Tools\EasyVROverlayUIEngine`。工具可在新开的CMD窗口中使用`%EASYVROVERLAYUIENGINE_HOME%\bin`定位引擎。环境变量写入失败时，安装脚本报告错误并回滚安装。
+
+在管理员CMD中执行启停和卸载。手动注册服务可在安装目录内执行`easyvrui_service.exe --install`后再启动。
+
+```bat
+"%ProgramFiles%\EasyVRUI\bin\easyvrui_service.exe" --stop
+"%ProgramFiles%\EasyVRUI\bin\easyvrui_service.exe" --start
+"%ProgramFiles%\EasyVRUI\bin\easyvrui_service.exe" --uninstall
+```
+
+`easyvrui_service.exe --uninstall`移除服务注册，并保留安装文件及`EASYVROVERLAYUIENGINE_HOME`。永久移除该安装目录时，可在Windows的系统环境变量设置中删除该变量。
+
+`install.bat "D:\Tools\EasyVRUI" --no-service`在自定义目录生成可独立运行的便携安装（同时复制服务工具、Helper及File Manager卷查询程序），保留系统环境变量的现有配置，并使用Engine本进程Desktop Duplication；安装完成后可在CMD中直接运行`start "" "D:\Tools\EasyVRUI\bin\easyvrui_engine.exe"`手动启动。`easyvrui_service.exe --check-install-root "D:\Tools\EasyVRUI"`校验目录路径是否合法。服务安装模式下，Helper随当前输入桌面切换，处理画面捕获和已鉴权的键鼠请求。
+
+SDK在调用进程所在机器读取[应用清单](/reference/application_manifest)并启动程序，入口为`launch_application()`。应用清单可声明`run_as_administrator`。普通权限的SDK启动器会对管理员请求返回权限不足错误，管理员启动器按请求继承管理员权限或使用普通令牌。Engine提供`application_list`查询会话和窗口，并通过`application_terminate`结束应用或请求关闭指定窗口。应用在握手中提供非空`name`。单实例由应用自身实现。
 
 示例中尖括号包裹的字符串为占位符，接入时替换为实际配置及握手数据。
 
@@ -18,7 +51,7 @@ Engine提供以下通信和进程协调入口。
 
 #### Engine配置
 
-端口和共享接入凭据保存在Engine可执行文件同目录的`config.json`中，安装路径为`bin/config.json`。默认端口为`49537`。接入凭据为非空字符串，缺项时初始化为随机值。下面是相关配置项示例，实际文件还可包含输入组件配置。
+端口和共享接入凭据保存在Engine可执行文件同目录的`config.json`中。默认端口为`49537`；接入凭据允许任意长度的非空字符串，仅在配置项不存在时生成随机初始值。下面是相关配置项示例，实际文件还可包含输入组件配置：
 
 Engine配置片段：
 
@@ -32,6 +65,8 @@ Engine配置片段：
 #### 本机SDK连接
 
 SDK默认通过本机命名管道发现Engine，取得实际端口、接入凭据、公钥指纹和PID，随后连接本机TCP/TLS服务。
+
+SDK接收线程按消息类型分流。同步请求按`id`等待并领取自己的响应。异步响应和服务端事件进入独立队列，UI线程按收包顺序分派两队列中的消息，并处理投递到UI线程的回调。同步请求期间的事件和异步回调留待下一次UI分派。这一顺序使输入排空前到达的按键或文字提交先于关闭完成回调交给应用。
 
 #### 远程SDK连接
 
@@ -58,7 +93,7 @@ python my_vr_app.py --easyvrui-host=::1 --easyvrui-access-credential="demo crede
 
 ### TLS
 
-TLS使用自签名ECC P-256证书，通过固定公钥指纹建立服务器信任。公钥指纹为证书SubjectPublicKeyInfo的DER编码经SHA-256计算得到的64个十六进制字符，由本机管道提供；远程SDK预先取得该值用于验证服务器。证书与持久私钥保存在当前Windows用户的证书和密钥存储中，启动时校验算法、证书有效性及密钥配对，合格资源继续复用。生成证书的有效期至9999年12月31日23:59:59；重新生成私钥后，远程SDK使用新的公钥指纹。
+TLS使用自签名ECC P-256证书，通过固定公钥指纹建立服务器信任。公钥指纹为证书SubjectPublicKeyInfo的DER编码经SHA-256计算得到的64个十六进制字符，由本机管道提供；远程SDK预先取得该值用于验证服务器。证书与持久私钥保存在当前Windows用户的证书和密钥存储中，启动时先比对私钥算法，对样本摘要签名并用证书导出的公钥验签以确认配对，同时校验有效期；合格资源继续复用，校验失败时重新生成配对密钥与证书。生成证书的有效期至9999年12月31日23:59:59；重新生成私钥后，远程SDK须取得并使用新的公钥指纹。
 
 Schannel按系统配置协商TLS版本，Engine要求TLS 1.2或以上版本。TLS握手超时为5秒。完成TLS后进行应用层鉴权，下面的长度头与JSON均在TLS加密通道内传输。
 
@@ -396,12 +431,12 @@ Engine → 客户端：
 |`width`、`height`|uint64|首次创建必填，均大于零|
 |`physical_scale`|有限数值|首次创建必填，大于零，表示逻辑像素物理尺寸的缩放倍数；1倍时每逻辑像素为0.001米|
 |`curvature`|有限数值|默认为`0.0`，大于或等于零，单位为米的倒数；曲率与有效物理宽度之积小于`2π`|
-|`position`、`rotation`|长度为3的有限数值数组|均默认为`[0.0,0.0,0.0]`，单位分别为米和度|
+|`position`、`rotation`|长度为3的有限数值数组|默认均为三个`0.0`，单位分别为米和度|
 |`visible`、`enabled`|布尔值|均默认为`true`|
 |`auxiliary`|布尔值|默认为`false`|
 |`title`|字符串|默认为`""`，保存SDK窗口标题，与`name`一样作为Engine窗体状态的固定属性，支持增量更新|
 |`name`|字符串|默认为`""`，保存SDK窗口名称|
-|`reference`|字符串|普通表面默认为`world`，取`world/body/head/left/right`；辅助表面由Engine维护有效参考姿态|
+|`reference`|字符串|普通表面使用SDK参考对象枚举的成员名称，默认`world`，取`world/body/head/left/right`。辅助表面由Engine维护有效参考姿态|
 |`startup_position`|字符串|可选，取`none/center`，省略为`none`；描述首次普通表面的启动定位|
 |`startup_owner`|uint64|可选，同session来源窗口的局部ID；省略或0优先使用当前选中普通表面，无有效来源时按头显居中|
 
@@ -454,7 +489,7 @@ Engine → 客户端：
 
 `node_list`是本次更新的绘图节点列表，省略等同`[]`；每项包含uint64类型的`node`和绘图命令对象数组`command_list`。每条命令通过字符串`type`标明用途，其余字段描述绘制参数。同一次提交中的窗口ID、同一窗口内的节点ID分别保持唯一。
 
-`order`是窗口保留的全部绘图节点ID及其绘制顺序，每个ID须对应已缓存或本次提交的节点，数组元素保持唯一。Engine按数组从前到后的顺序绘制，后绘制的内容叠在前面。例如背景节点为10、按钮为20、文本框为30时，`order`为`[10,20,30]`。`node_list`负责更新节点内容，`order`负责排列和保留节点。
+`order`是窗口保留的全部绘图节点ID及其绘制顺序，每个ID须对应已缓存或本次提交的节点，数组元素保持唯一。Engine按数组从前到后的顺序绘制，后绘制的内容叠在前面。例如背景节点为10、按钮为20、文本框为30时，`order`依次包含`10`、`20`、`30`。`node_list`负责更新节点内容，`order`负责排列和保留节点。
 
 #### 增量、节点删除与空内容
 
@@ -561,7 +596,9 @@ Engine先准备本次各窗口的数据，通过处理后再写入表面状态�
 
 `hand`为`left`或`right`，`window`须为本会话已存在的窗口局部ID。当前手的扳机或侧握键有效按下并命中指定窗口时可捕获。按键进入等待释放状态时，松开后重新按下即可发起捕获。捕获后离开窗口边界仍可继续收到坐标，坐标可能超出逻辑矩形。
 
-`lock_position`为可选布尔值，默认`false`。设为`true`时，可视激光端点固定在捕获时的窗口逻辑坐标，每帧随窗口当前尺寸、曲率和姿态重新定位；投递SDK的坐标与射线仍根据实际手柄输入更新。扳机与侧握捕获采用相同的锁定规则。SDK为窗口移动、旋转、缩放和曲率调节显式启用端点锁定，普通控件拖动保持默认值。捕获释放或失效时同时清除端点锁定。
+`lock_position`为可选布尔值，默认`false`。设为`true`时，可视激光端点每帧按窗口的当前尺寸、曲率和姿态投影。移动、旋转、物理缩放和曲率调节使用捕获时的绝对逻辑像素。投递给SDK的坐标和射线继续跟随实际手柄输入。捕获释放或失效时清除端点锁定。
+
+`lock_anchor_x`和`lock_anchor_y`可分别指定水平和垂直轴的锁定锚点，取值为`min`、`center`或`max`。设置锚点时须将`lock_position`设为`true`。`min`为左边或上边，`center`为中心线，`max`为右边或下边。Engine保留捕获点到对应锚点的有符号像素偏移，按新尺寸求出位置并限制在有效窗体范围内。省略某一轴的锚点时，该轴使用捕获时的绝对逻辑坐标。SDK在拖拽外圈控制块改变逻辑尺寸时同时指定两轴锚点。
 
 合法目标未满足捕获条件时返回`false`；手别非法、窗口不存在或属于其它会话时返回业务错误。
 
@@ -574,7 +611,9 @@ Engine先准备本次各窗口的数据，通过处理后再写入表面状态�
     "session_id": 1,
     "session_token": "<会话令牌>",
     "op": "pointer_capture",
-    "lock_position": false,
+    "lock_position": true,
+    "lock_anchor_x": "max",
+    "lock_anchor_y": "center",
     "hand": "right",
     "window": 100
 }
@@ -636,6 +675,51 @@ Engine先准备本次各窗口的数据，通过处理后再写入表面状态�
 }
 ```
 
+#### 操作显示器指针：`screen_pointer_input`
+
+普通应用会话可用该请求操作自己已提交、可见且启用的窗口中所显示的Windows屏幕。`screen_id`为DXGI显示器编号，`x/y`为画面区域内的归一化坐标，范围为`0.0`至`1.0`。`action`取`move`、`down`、`up`或`scroll`。`scroll`使用有符号整数`steps`，`horizontal=true`表示水平滚轮。输入端按显示器的`DesktopCoordinates`映射到包含负坐标的虚拟桌面，再使用绝对虚拟桌面鼠标事件。独立Engine直接调用`SendInput`，服务托管时通过Helper的`inject_pointer`执行。
+
+SDK只在`screen.accept_pointer=true`、控件可见、启用且捕获可用时转发指针。画面保持纵横比，指针命中区域为画面矩形。
+
+服务托管时，指针和键盘请求进入同一队列，响应表示请求已入队。连续的同屏移动可合并为最新坐标，按下、释放、滚动和键盘事件按入队顺序处理。渲染使用已就绪的捕获帧，后台管道接收后续帧。
+
+```json
+{
+    "message_type": "request",
+    "id": 22,
+    "session_id": 1,
+    "session_token": "<会话令牌>",
+    "op": "screen_pointer_input",
+    "window": 100,
+    "screen_id": 0,
+    "action": "move",
+    "x": 0.5,
+    "y": 0.5,
+    "steps": 0,
+    "horizontal": false
+}
+```
+
+#### 操作桌面键盘：`screen_keyboard_input`
+
+普通应用会话通过自己的当前窗口发送键盘请求。`window`为应用窗口编号，`screen_id`为显示器编号。`event_type`取`key_down`、`key_up`或`ime_submit`。按键请求使用`key`指定键名，也可使用`scan_code`指定扫描码，扩展扫描码使用`0xE0`高字节。按下请求可附带`shift`、`ctrl`、`alt`和`meta`布尔值。文本提交使用`text`，每次请求支持最多65536字节UTF-8。使用`action="release"`释放该窗口和显示器组合转发的全部按键。
+
+SDK在允许键盘的`screen`获得焦点时按控件设置开启输入区，转发按键及IME提交文本。独立Engine在本地调用`SendInput`，服务托管时由Helper通过`inject_keyboard`执行。按键使用虚拟键或扫描码，文本使用UTF-16的Unicode键事件。Windows将键盘事件交给活动输入桌面上的前台应用，激光可通过`accept_pointer`操作桌面前台窗口。Helper切换桌面时先在原桌面释放持有的键，切换后重试尚未释放的键。显示器捕获资源由发现或捕获请求按需重建。
+
+```json
+{
+    "message_type": "request",
+    "id": 23,
+    "session_id": 1,
+    "session_token": "<会话令牌>",
+    "op": "screen_keyboard_input",
+    "window": 100,
+    "screen_id": 0,
+    "event_type": "key_down",
+    "key": "Enter"
+}
+```
+
 ### 当前窗口与键盘路由
 
 Engine维护一个全局当前窗口，启动时为空。普通窗口隐藏或关闭后的再次显示由新的激光按下重新选中；Desktop通过Ctrl+Pause显示后由Engine选中。激光在可交互的普通窗口上按下时发起窗口选择，完成相关排空后将它设为当前窗口；悬停移动保持当前选择。Engine向原窗口SDK发送失焦事件，再向新窗口SDK发送获焦事件，随后投递触发选择的按下事件。
@@ -644,11 +728,15 @@ SDK的本地窗口激活与控件焦点维护应用状态。Engine通过激光�
 
 已选中的窗口保持可见但被禁用时，Engine暂停其选择资格并记录恢复顺序。完成旧输入路径清理后，若该会话仅有一个可交互的普通窗口，则将键盘交给该窗口，适用于SDK打开模态对话框的过程。对话框关闭、隐藏或失效后，原窗口重新启用时按逆序恢复，可用于嵌套对话框。恢复目标须保持可见、属于原会话且参考姿态有效；显式选择的有效窗口优先，选择其它应用窗口后清除原应用的恢复记录。普通窗口隐藏或关闭后的选择采用前述激光规则，Desktop采用快捷键唤起规则。
 
-激光事件按当前命中或捕获的窗口路由。输入区关闭时，Engine将按键直接送至当前窗口所属SDK；输入区开启时，按键先经活动IME处理，最终文本以`ime_submit`提交给SDK。SDK负责窗口内的控件焦点、按键分发、文字编辑、选区、字符限制和Tab导航。`tab_index`为SDK本地属性，默认`0`：非零项按升序优先，零值项按`top/left`排列；Shift+Tab反向，跳过隐藏、禁用及label等不可聚焦项。
+激光事件按当前命中或捕获的窗口路由。启用IME的输入区开启时，按键先经活动IME处理，最终文本以`ime_submit`提交给SDK。输入区关闭或IME关闭时，Engine将按键直接送至当前窗口所属SDK。SDK负责窗口内的控件焦点、按键分发、文字编辑、选区、字符限制和Tab导航。`tab_index`为SDK本地属性，默认`0`：非零项按升序优先，零值项按`top/left`排列；Shift+Tab反向，跳过隐藏、禁用及label等不可聚焦项。
 
 启动时采用虚拟键盘模式，单独按下Pause切换实体模式。Ctrl+Pause和Ctrl+Alt+Pause是全局快捷键，在两种模式及没有当前窗口时均有效；Alt+Shift、Ctrl+Shift仅在实体模式且存在有效当前窗口时处理。退出实体模式时清除尚未派发的输入法切换请求。当前窗口失效时解除拦截，Pause选定的键盘模式保留；后续选中有效窗口时按该模式恢复路由。实体模式下，Engine按输入区开关选择直接送SDK或先送IME。按钮等非文本控件通过当前窗口SDK接收按键。
 
-Ctrl+Alt+Pause执行全局Body中心和World偏移重置，在两种键盘模式及窗口已选中或未选中时均生效，并保留当前键盘模式。Windows将该组合报告为Ctrl+Alt+Break时采用相同处理。头显暂时失去跟踪时，请求保留到有效姿态恢复后执行。
+服务托管时，Helper通过独立的已认证管道向Engine同步键盘状态。切换输入桌面时清空瞬态键态，释放旧路由中仍按下的键。安全桌面上的Helper只登记Pause热键，向Engine发送模式切换请求。普通按键留在Windows活动桌面。
+
+Ctrl+Alt+Pause执行全局Body中心和World偏移重置，在两种键盘模式及窗口已选中或未选中时均生效，并保留当前键盘模式。Windows将该组合报告为Ctrl+Alt+Break时采用相同处理。头显暂时失去跟踪时，请求保留到有效姿态恢复后执行。重置成功且头显姿态有效时，Engine在新的World原点显示朝向头显的红色十字提示15秒，再次重置刷新15秒计时。
+
+实体键盘模式且存在有效当前窗口时，按下`PrintScreen`复制当前VR视角（捕获前收起已有截图提示并等待隐藏帧），按下`Alt+PrintScreen`复制当前选中普通窗口的D3D平面纹理图像；两种截图均以PNG与Windows位图格式写入剪贴板，并在写入成功后在视野中央显示约2秒的头显相对、输入穿透提示浮窗。
 
 Ctrl+Pause切换配置中Desktop应用窗口的显示与隐藏。首次调用启动程序，后续调用复用仍在运行的进程和窗口；每次显示时在当前头显正前方定位一次，采用world参考对象，然后提升并选中窗口。显示期间窗口保持该世界姿态。Desktop通过普通SDK会话创建窗口，配置和生命周期见“Desktop应用”。
 
@@ -664,7 +752,7 @@ Ctrl+Pause切换配置中Desktop应用窗口的显示与隐藏。首次调用启
 |---|---|---|---|
 |激光选择另一个普通窗口|切换为新窗口|关闭旧输入区|先按关闭输入区的路径处理，新窗口SDK按需唤起|
 |再次选择当前窗口|保持|保持|保持原路径|
-|`show_input_ui`|保持关联窗口|开启，或更新已开启输入区的矩形|经过活动IME|
+|`show_input_ui`|保持关联窗口|开启，或更新输入区矩形及组件开关|按开关选择layout和IME，IME关闭时按键直接送窗口SDK|
 |`hide_input_ui`|保持|排空后关闭|直接送窗口SDK|
 |Pause切换键盘模式|保持|保留开启状态及矩形|按新模式选用layout或实体键盘来源|
 |选择另一个layout或IME|保持|保留开启状态及矩形|排空旧组件后启用新组件|
@@ -674,19 +762,21 @@ Ctrl+Pause切换配置中Desktop应用窗口的显示与隐藏。首次调用启
 |同一应用内的禁用接替与恢复|切换为可接替或已重新启用的窗口|关闭旧输入区|新窗口SDK按需恢复控件焦点与输入界面|
 |当前窗口参考姿态失效|清空|关闭|解除对应实体键盘拦截，取消失效捕获|
 
-只有改变旧输入路径的操作执行排空。更新同一输入区的几何信息、重复选择当前窗口或已活动组件时保留原处理状态。重复`show_input_ui`更新现有输入区的几何信息；切换控件时，SDK使用隐藏完成后再唤起的顺序。重复点击同一文本框时，SDK根据输入区是否开启决定唤起界面。
+只有改变旧输入路径的操作执行排空。更新同一输入区的几何信息、重复选择当前窗口或已活动组件时保留原处理状态。同一窗口的`show_input_ui`仅变更矩形时直接更新位置，变更任一组件开关时串行排空旧路径再应用新配置。切换控件时，SDK在隐藏完成后唤起新输入区。重复点击同一文本框时，SDK根据输入区是否开启决定唤起界面。
 
 ### 输入条、IME与Layout界面
 
 #### 唤起输入界面：`show_input_ui`
 
-请求仅包含关联`window`和输入区`rectangle`，以及公共请求字段。`rectangle`包含有限数值`left`、`top`、`width`、`height`，相对于关联窗口左上角，使用窗口逻辑单位，宽高大于零。Engine按关联窗口的尺寸与空间姿态定位输入界面。
+请求包含关联`window`、输入区`rectangle`和公共请求字段。可选布尔字段`enable_virtual_keyboard`和`enable_ime`分别控制虚拟键盘及IME，各自省略时取`true`。`rectangle`包含有限数值`left`、`top`、`width`、`height`，相对于关联窗口左上角，使用窗口逻辑单位，宽高大于零。Engine按关联窗口的尺寸与空间姿态定位输入界面。
 
-请求会话须为普通应用角色，关联窗口须属于该会话，并且是Engine当前选中的、可见并启用的普通窗口。SDK在输入区下方创建独立长条辅助窗口，显示当前语言、具体IME名称及“输入法切换”按钮。输入条在虚拟与实体键盘模式下均显示；虚拟模式还显示活动layout，IME按自身功能提供候选界面，英文直通IME可以保持空壳。界面从上到下依次为输入区、输入条、IME候选界面和layout。
+请求会话须为普通应用角色，关联窗口须属于该会话，并且是Engine当前选中的、可见并启用的普通窗口。启用IME时，SDK创建独立输入条，显示当前语言、具体IME名称及“输入法切换”按钮。虚拟键盘模式下，已启用的输入条、可见的IME候选界面和活动layout从上到下依次排列在输入区下方。
 
-唤起要求活动IME可用；虚拟模式还要求活动layout可用。组件暂未就绪时返回业务失败，调用方可查询组件状态并在就绪后重试。成功响应表示输入区关联已建立、相应状态已推送，具体界面由组件异步绘制。
+实体键盘模式下，输入条的右上角贴合当前窗口的右下角，随窗口移动、旋转和缩放。IME候选界面在光标行的输入区下方居中。对于曲面窗口，辅助界面沿各自锚点的切平面放置。
 
-唤起时开启输入区，启用IME处理路径；同一已开启输入区重复唤起时更新矩形。文本、选区、可编辑性及字符限制由SDK维护。同一窗口切换到新的文本输入目标时，SDK先请求结束原输入区，保留旧控件为输入目标并处理其收尾事件；隐藏完成后再切换本地控件焦点，为新目标唤起输入区。
+`enable_ime=true`要求当前应用选中的IME可用。虚拟键盘模式下，`enable_virtual_keyboard=true`要求活动layout可用。组件暂未就绪时返回业务失败，调用方可查询组件状态并在就绪后重试。成功响应表示输入区关联已建立、相应状态已推送，具体界面由组件异步绘制。
+
+输入区按指定开关启用组件。IME关闭时，实体键盘和活动layout的按键直接投递给当前窗口。文本、选区、可编辑性及字符限制由SDK维护。同一窗口切换到新的文本输入目标时，SDK先请求结束原输入区，保留旧控件为输入目标并处理其收尾事件；隐藏完成后再切换本地控件焦点，为新目标唤起输入区。
 
 请求：
 
@@ -698,6 +788,8 @@ Ctrl+Pause切换配置中Desktop应用窗口的显示与隐藏。首次调用启
     "session_token": "<会话令牌>",
     "op": "show_input_ui",
     "window": 100,
+    "enable_virtual_keyboard": true,
+    "enable_ime": false,
     "rectangle":
     {
         "left": 24.0,
@@ -957,14 +1049,14 @@ IME按`language`分组，选择某个IME同时确定当前输入语言。Alt+Shi
 
 |发送者|允许事件|目的端|
 |---|---|---|
-|当前活动layout|`key_down`、`key_up`|当前活动IME|
+|当前活动layout|`key_down`、`key_up`|活动IME，或在IME关闭时送至当前窗口所属session|
 |当前活动IME|`key_down`、`key_up`、`ime_submit`|当前窗口所属session|
 
 Engine通过事件排空握手串行化输入路径切换。排空期间固定原窗口及session作为旧事件目的端，完成后启用新的路由。
 
 正常输入按当前活动组件和窗口校验；排空期间按被冻结的旧窗口、组件连接和阶段校验。窗口已关闭或隐藏时，旧路径仍可完成排空确认；结果仅在原目标仍有效时投递，资源已失效时结束该旧目标的投递。
 
-* layout发送`key_down/key_up`给活动IME。新的按下事件来自可见的虚拟键盘；按键释放用于结束当前输入路径中此前的按下状态。
+* layout发送`key_down/key_up`给活动IME，IME关闭时由Engine直接投递给当前窗口。新的按下事件来自可见的虚拟键盘；按键释放用于结束当前输入路径中此前的按下状态。
 * IME消费自己使用的按键，转发其余`key_down/key_up`给当前窗口SDK。IME负责配对维护按下与释放状态。
 * IME使用`ime_submit`提交最终文本，`text`为JSON字符串；Engine将文本转发给当前窗口所属session，再由SDK应用到本地输入控件。
 
@@ -1015,7 +1107,7 @@ layout发送按键：
 
 IME将最终提交的文本放入`event.event_type="ime_submit"`的事件。输入法的预编辑文本、候选项、选词操作和候选窗口由IME应用维护。候选窗口使用普通辅助表面及标准绘图、激光事件接口实现。
 
-内置拼音与日文IME的候选窗展示组合文本、候选项和输入模式。候选窗固定使用各自的中文或日文界面，原生模式按钮分别显示“拼音”和“かな”，临时英文输入模式显示“ABC”。EasyVRUI English直通按键，由输入条显示英文标识。输入条的控件文案采用SDK界面语言。
+内置中日文候选窗口展示组合文本、候选项与输入模式。实体键盘模式下，活动IME有组合文本或候选项时显示候选窗口，上屏或清空组合后自动收起。虚拟键盘模式下，活动IME的候选窗口始终显示。中文原生模式按钮显示“拼音”，日文原生模式按钮显示“かな”，临时英文输入模式显示“ABC”。语言类别与具体IME身份由输入条显示，英文直通IME由输入条展示状态。
 
 请求：
 
@@ -1434,7 +1526,7 @@ Engine仅接受当前等待确认的那条组件连接提交此操作。组件�
 
 ### Engine主动推送
 
-Engine可主动推送下表所列的13种事件。每条事件使用`message_type="event"`，通过`event_type`标明类型，并带有接收连接的`session_id`与`session_token`。事件与响应共用帧流。SDK按收包顺序分派服务端事件和异步请求完成通知，连接队列的实现见[IPC、TLS与连接队列](/advanced/03_ipc_tls_protocol)。
+所有事件统一使用`message_type="event"`，通过`event_type`区分具体类型，并包含接收连接的`session_id/session_token`。事件与响应共用帧流，心跳结构见前述章节。
 
 |event_type|用途|
 |---|---|
@@ -1446,9 +1538,11 @@ Engine可主动推送下表所列的13种事件。每条事件使用`message_typ
 |`ime_submit`|IME提交最终文本|
 |`focus_in`、`focus_out`|窗口获焦与失焦|
 |`window_visibility`|要求SDK设置指定窗口的可见性|
-|`window_close`|要求目标SDK按正常关闭流程处理指定窗口|
+|`window_close`|要求SDK按正常关闭流程关闭指定窗口|
 |`render_error`|异步绘图错误|
-|`screen_state`|屏幕内容可用性变化|
+|`screen_state`|屏幕捕获可用性、尺寸及帧率|
+|`global_pointer_down`|手柄按键按下边沿，广播给已鉴权会话|
+|`global_pointer_up`|手柄按键释放边沿，广播给已鉴权会话|
 
 连续移动和跟踪快照可以在尚未发送的同一合并区间内替换为最新值。按下、释放、目标丢失、窗口焦点变化、窗口可见性要求、排空通知及排空确认构成顺序边界；边界两侧的事件各自保持所属区间。按键和文本提交按入队顺序投递。
 
@@ -1458,11 +1552,17 @@ Engine可主动推送下表所列的13种事件。每条事件使用`message_typ
 
 命中检测使用窗面的完整逻辑矩形，透明像素也参与命中。未捕获时，Engine在可见且姿态有效的窗面中选择最近的交点，距离相同时选择后创建的窗口。激光止于该交点，最近窗面启用且符合手别限制时才接收指针交互。捕获后按捕获规则继续投递。可交互窗口的边缘外扩64逻辑像素只用于延续激光显示，实际窗面交点优先。
 
-示例窗口左上角的世界位置为`[0,1.6,-1]`，每逻辑单位对应0.001米。`left=120`、`top=80`的世界交点为`[0.12,1.52,-1]`，与示例射线相交。
+示例窗口左上角的世界坐标为`(0, 1.6, -1)`，每逻辑单位对应0.001米。`left=120`、`top=80`的世界交点为`(0.12, 1.52, -1)`，与示例射线相交。
 
 `hand`取`left`或`right`，`window`为接收会话的窗口局部ID。有效更新包含`left/top`、`trigger/grip`、`joystick`、`primary/secondary`、三维`origin/direction`及四元数`rotation`；`origin`使用米，`direction`为方向向量。`world_position/world_rotation`成对提供。
 
 `trigger`表示扳机，`grip`表示侧握键，`true`表示按下，`false`表示松开。SDK使用扳机操作控件，使用侧握键抓取窗口并调整三维位置与旋转。`primary`对应左手X或右手A，`secondary`对应左手Y或右手B，同样使用布尔状态。`joystick.x/y`为0～255整数，中立值为128；X从左到右递增，Y从下到上递增。`joystick.pressed`表示摇杆垂直按压。缺少对应硬件或绑定时，按钮状态为`false`，摇杆坐标为128。
+
+Engine分别跟踪两只手的激光命中和捕获。指向窗口、且未按下扳机或侧握键时，摇杆Y轴越过18%死区后产生垂直滚轮步数。推杆幅度越大，步频越高。`pointer.scroll`携带本次步数，负数向上、正数向下、零表示本次没有滚动。`screen`将步数换算为Windows滚轮方向。
+
+窗口收到的逻辑坐标使用速度自适应滤波。支持模拟扳机的手柄在轻触阈值处记录稳定落点，按下时将合适的落点用于点击。按下后移动未超过12逻辑像素时保持按下点。悬停时，3D光束使用SteamVR的`/pose/tip`实时射线；姿态不可用时，光束过渡到带位置和旋转校准的手柄跟踪射线。按下冻结和锁定捕获期间，光束指向锁定点。
+
+SteamVR按命中或捕获状态为左右手分别提交交互动作集优先级，两手互相独立：处于有效命中或捕获的手使用Overlay全局高优先级，退出交互后回到普通优先级；姿态动作集保持普通优先级。命中或捕获到有效目标交点时，Engine在交点处沿曲面切平面显示随头显距离自适应限幅的命中圆点；边缘外扩仅用于维持光束预提示。
 
 命中或捕获更新：
 
@@ -1535,7 +1635,7 @@ Engine可主动推送下表所列的13种事件。每条事件使用`message_typ
 }
 ```
 
-`lost:true`表示目标丢失，此时坐标和控制器状态为可选字段。扳机、侧握键、摇杆按压、面键的按下与释放以及离开消息保序，普通连续移动和摇杆坐标更新可合并为最新值。
+`lost:true`表示目标丢失，此时坐标和控制器状态为可选字段。扳机、侧握键、摇杆按压、面键的按下与释放、滚轮步数以及离开消息保序，普通连续移动和摇杆坐标更新可合并为最新值。
 
 #### 跟踪消息：`tracking`
 
@@ -1669,7 +1769,7 @@ Engine收到layout排空确认并转发完其已有事件后，向IME发送：
 
 发送给已注册输入组件及相关普通应用SDK。当前窗口、界面显示或键盘模式变化时，通知活动layout、IME和关联应用；组件列表变化时通知已注册组件及当前应用，可附带`provider_list`完整快照。该字段结构与`input_provider_list`查询结果一致，省略时沿用原列表，显式`[]`表示空列表。应用SDK据此显示输入条中的当前语言和具体IME名称。
 
-`active`表示组件实际参与当前输入路径：IME需要处于被选中、输入区开启且当前窗口有效的状态；layout还须处于虚拟键盘模式并存在活动IME。具体候选窗口的显示与内容由IME控制。`rectangle`在组件参与该路径时保存窗口局部输入矩形，其余情况为`null`。输入条及组件表面由Engine按辅助表面规则定位。
+`active`表示组件实际参与当前输入路径：组件须处于被选中、对应开关开启、输入区开启且当前窗口有效的状态。layout还须处于虚拟键盘模式。具体候选窗口的显示与内容由IME控制。`rectangle`在组件参与该路径时保存窗口局部输入矩形，其余情况为`null`。输入条及组件表面由Engine按辅助表面规则定位。
 
 `input_ui_state`中的`active`描述组件是否参与当前输入路径；`provider_list`各项的`active`描述该角色被选中的组件。实体模式下，被选中的layout在组件列表中仍为`active=true`，其输入状态为`active=false`、`rectangle=null`。
 
@@ -1745,7 +1845,7 @@ Engine在事件排空完成并切换输入路径后，向相关组件和窗口SD
 
 组件会话接收包含`active`的组件状态；普通应用会话接收包含`window`的窗口路由状态。两种会话角色互斥，各自的`rectangle`按所属状态解释。
 
-应用SDK在当前窗口的路由状态变化时接收同类消息，字段为`window`、`physical`及`rectangle`，可附带`provider_list`，据此更新本地输入路由和输入条。普通应用依据有效当前窗口及非空`rectangle`判断输入区已开启；此时两种键盘模式均显示输入条。输入区关闭或当前应用切换后，输入条收起，其辅助参考姿态失效并退出交互。
+应用SDK在当前窗口的路由状态变化时接收同类消息，字段为`window`、`physical`及`rectangle`，可附带`provider_list`，据此更新本地输入路由和输入条。有效当前窗口及非空`rectangle`表示输入区已开启。开启时消息包含`enable_virtual_keyboard`和`enable_ime`。两种键盘模式均在`enable_ime=true`时显示输入条。输入区关闭、关闭IME或切换当前应用时，输入条收起，停止定位和交互。
 
 实体模式下，向当前应用发送输入区及组件列表：
 
@@ -1757,6 +1857,8 @@ Engine在事件排空完成并切换输入路径后，向相关组件和窗口SD
     "session_token": "<会话令牌>",
     "window": 100,
     "physical": true,
+    "enable_virtual_keyboard": true,
+    "enable_ime": true,
     "rectangle":
     {
         "left": 24.0,
@@ -1807,9 +1909,9 @@ Engine在事件排空完成并切换输入路径后，向相关组件和窗口SD
 
 #### 按键、文本提交与窗口焦点事件
 
-输入区关闭时，Engine将按键直接发给当前窗口所属SDK；输入区开启时，Engine先将layout或实体键盘的按键发给IME，再将IME转发的按键或`ime_submit`文本发给当前窗口SDK。发给应用SDK的事件包含该会话局部`window`，按连接内顺序交给对应窗口。
+输入区开启且启用IME时，Engine先将layout或实体键盘的按键发给IME，再将IME转发的按键或`ime_submit`文本发给当前窗口SDK。IME关闭或输入区关闭时，Engine直接投递按键。发给应用SDK的事件包含该会话局部`window`，按连接内顺序交给对应窗口。
 
-`Alt`独立按下后松开时，Engine在该释放事件补充`alt_tap=true`。组合键和排空产生的释放按普通按键释放处理。输入组件自动转发按键时保留该字段。SDK在按住`Alt`或菜单键盘导航时显示助记符下划线，在符合条件的释放时切换菜单导航。指针操作、焦点切换和输入状态变化可取消待激活状态，`Alt+Shift`切换输入语言时原编辑控件保持焦点。
+Engine在独立按下再松开`Alt`的释放事件上设置`alt_tap=true`。组合键和排空释放按普通事件处理。输入组件自动转发时保留该字段。SDK在按住`Alt`或菜单键盘导航期间显示助记符下划线，收到有效的独立`Alt`释放后切换菜单导航。指针操作、焦点切换及输入状态变化会取消待定的菜单激活，因此`Alt+Shift`切换输入语言时保留原编辑焦点。
 
 输入区关闭，Engine → 当前窗口SDK：
 
@@ -1917,7 +2019,7 @@ IME提交最终文本，Engine → 当前窗口SDK：
 
 `focus_out/focus_in`由Engine直接发给对应窗口SDK。失焦通知携带原窗口，获焦通知携带新窗口。SDK据此管理窗口状态，再处理本地控件焦点。
 
-`key_down/key_up`用于按键分发，原始字符信息可通过可选`text`提供给IME。输入区开启时，文字由`ime_submit.text`一次性提交给SDK，SDK按本地选区与字符约束应用文本。
+`key_down/key_up`用于按键分发，可选`text`携带原始字符。启用IME时，使用`ime_submit.text`向SDK提交最终文字，SDK按本地选区与字符约束应用文本。
 
 接收方根据目标`window`和已同步的输入区状态分发按键。`ime_submit`须来自当前活动IME，并符合已开启输入区及当前排空阶段的发送规则。
 
@@ -1998,9 +2100,41 @@ Engine向目标窗口所属SDK发送该事件。`window`是目标会话内的局
 
 成功接收`present`后仍可能出现异步图形错误，通过该推送报告。可重试的纹理提交或GPU恢复由引擎处理。
 
+#### 全局手柄按键：`global_pointer_down`与`global_pointer_up`
+
+Engine分别跟踪左右手的按键边沿。事件随按键变化广播到所有已鉴权会话，并由连接写入各自的`session_id`与`session_token`，窗口可见性、焦点及激光落点均可独立变化。SDK将其转换为`global_pointer_event_args_t`，并触发会话内所有未关闭、未释放窗口（包含隐藏窗口）的`on_global_pointer_down`或`on_global_pointer_up`事件。
+
+`hand`为`left`或`right`，`button`为`trigger`、`grip`、`joystick`、`primary`或`secondary`。`joystick`表示摇杆按压，`timestamp_ms`是采样时的Unix毫秒时间戳。
+
+```json
+{
+    "message_type": "event",
+    "event_type": "global_pointer_down",
+    "session_id": 1,
+    "session_token": "<会话令牌>",
+    "hand": "left",
+    "button": "trigger",
+    "timestamp_ms": 1795564800123
+}
+```
+
+```json
+{
+    "message_type": "event",
+    "event_type": "global_pointer_up",
+    "session_id": 1,
+    "session_token": "<会话令牌>",
+    "hand": "left",
+    "button": "trigger",
+    "timestamp_ms": 1795564800250
+}
+```
+
 #### 屏幕内容状态：`screen_state`
 
-窗口所引用的显示器首次采样、显示器来源变化或可用性状态变化时发送给该窗口所属会话。`window`是接收会话内的局部窗口ID，`screen_id`是`screen`控件申报的显示器序号。`available=true`表示当前采集内容可用，`false`表示当前采集不可用，原因可包括显示器断开、采集访问丢失或图形设备故障。SDK据此更新该窗口内绑定相同`screen_id`的控件状态；屏幕像素由Engine本地采集和绘制。
+窗口开始引用显示器、订阅节点变化、像素尺寸变化或可用性状态变化时，Engine向窗口所属会话发送此事件。`window`是接收会话内的局部窗口ID，`screen_id`是`screen`控件申报的显示器序号。`width`和`height`是捕获纹理的像素尺寸。`available=true`表示当前捕获内容可用。显示器断开、捕获访问丢失或图形设备故障时，`available`为`false`。SDK据此更新窗口内绑定相同`screen_id`的控件状态并计算等比显示区域。便携模式下屏幕像素由Engine本进程捕获，服务托管模式下由Helper捕获并经共享纹理交给Engine绘制，均由Engine发送本事件（EasyVRScreen工具栏展示的双FPS即取自这两个字段）。
+
+`capture_frame_rate`和`render_frame_rate`是以FPS为单位的浮点数。前者统计该显示器在最近1秒内产生新捕获画面的次数，后者统计该窗口在最近1秒内成功提交可见SteamVR纹理的帧数。同一窗口的一帧即使提交了多个面也只计一次。Engine每0.5秒采样一次，任一帧率较上次推送变化至少0.1 FPS时发送事件。静止画面的捕获帧率随采样窗口归零。窗口持续没有新提交时，渲染帧率随采样窗口归零。窗口退出渲染范围或捕获不可用时，两项均归零。
 
 ```json
 {
@@ -2010,7 +2144,11 @@ Engine向目标窗口所属SDK发送该事件。`window`是目标会话内的局
     "session_token": "<会话令牌>",
     "window": 3,
     "screen_id": 0,
-    "available": false
+    "available": true,
+    "width": 1920,
+    "height": 1080,
+    "capture_frame_rate": 60.0,
+    "render_frame_rate": 59.0
 }
 ```
 
@@ -2024,9 +2162,9 @@ Engine向目标窗口所属SDK发送该事件。`window`是目标会话内的局
 
 `metadata.rotation`和`laser_rotation_offset`是`[x,y,z]`三轴欧拉角，单位度；当前转换组合为`qz × qy × qx`，作用于向量时先X再Y再Z。SDK用它提供可编辑角度属性。
 
-跟踪消息中pose的`rotation`、激光`rotation`和`world_rotation`使用`[x,y,z,w]`四元数，单位四元数`[0,0,0,1]`表示无旋转。`direction`是三维射线方向向量。各字段按所属消息规定的编码解释。
+跟踪消息中pose的`rotation`、激光`rotation`和`world_rotation`使用包含`x`、`y`、`z`、`w`四个分量的四元数数组，单位四元数`(0, 0, 0, 1)`表示无旋转。`direction`是三维射线方向向量。各字段按所属消息规定的编码解释。
 
-`physical_scale`是缩放倍数。固定基准为1000逻辑像素对应1米，实际宽度为`width × physical_scale / 1000`，实际高度为`height × physical_scale / 1000`。相同倍率下，相同逻辑尺寸的控件具有相同物理尺寸。Engine的Overlay变换以几何中心定位，窗口metadata以左上角定位，转换时需计入半宽、半高偏移。
+`physical_scale`是缩放倍数。固定基准为1000逻辑像素对应1米，实际宽度为`width × physical_scale / 1000`，实际高度为`height × physical_scale / 1000`。相同倍率下，相同逻辑尺寸的控件具有相同物理尺寸。SDK将客户区和周围的控制框、标题栏、菜单栏合成为一个完整表面，再将其逻辑宽高写入`width`和`height`。绘图命令、输入区和激光命中坐标均以完整表面的左上角为原点。Engine的Overlay变换以几何中心定位，窗口metadata以表面左上角定位，转换时需计入半宽、半高偏移。
 
 #### reference取值
 
@@ -2048,15 +2186,15 @@ World采用SteamVR站立参考系，游戏中的角色移动由游戏自身维�
 
 输入条、IME和layout使用`auxiliary=true`的辅助表面。Engine根据当前窗口、输入矩形和组件角色计算参考姿态，并通过`tracking.reference_map`反馈给SDK。辅助表面可省略`reference`，其定位由Engine维护。
 
-layout和IME会话创建的表面自动采用辅助定位。普通应用的辅助表面在其为当前应用、输入区开启且关联窗口有效时定位；输入组件表面要求组件实际参与当前输入路径，layout还要求虚拟键盘模式。`visible`决定是否显示，`enabled=true`时参与激光交互。输入路径收起、关联窗口失效或当前应用切换后，定位失效并释放捕获。
+layout和IME会话创建的表面自动采用辅助定位。普通应用的辅助表面（输入条）在其为当前应用、输入区开启、启用IME且关联窗口有效时定位；输入组件表面要求组件实际参与当前输入路径，layout还要求虚拟键盘模式。`visible`决定是否显示，`enabled=true`时参与激光交互。输入路径收起、关联窗口失效或当前应用切换后，定位失效并释放捕获。
 
 输入区的米制换算比例为`s = 关联窗口.physical_scale / 1000`。辅助表面的有效物理宽度为`W = 表面.width × s`，物理高度为`H = 表面.height × s`。其创建请求仍须提供大于零的`physical_scale`，有效显示比例跟随关联窗口。
 
-辅助参考原点相对关联窗口左上角的偏移为`[(rectangle.left + (rectangle.width × 0.5)) × s - (W × 0.5), -((rectangle.top + rectangle.height) × s + ΣH), depth]`，再通过关联窗口姿态转换到世界空间。
+虚拟键盘模式下，参与堆叠的可见辅助表面均相对输入区横向居中，顺序为当前应用的输入条、活动IME表面、活动layout表面（同一组按Engine窗口ID递增）。其辅助参考原点相对关联窗口左上角的偏移为`((rectangle.left + rectangle.width × 0.5) × s - W × 0.5, -((rectangle.top + rectangle.height) × s + ΣH), depth)`，再通过关联窗口姿态转换到世界空间；`ΣH`为排在当前表面之前的可见表面高度之和。
 
-参与堆叠的表面须为可见、活动的辅助表面。先排列当前应用的输入条，再排列活动IME表面，最后排列虚拟模式下的layout表面；同一组按Engine窗口ID递增。`ΣH`为排在当前表面之前的有效表面高度之和。当前面某个界面隐藏时，其高度为零，后续界面紧贴前一个可见表面。
+实体键盘模式下，当前应用的输入条以关联窗口右下角为锚点，右上角贴合该锚点（整宽向左展开、深度偏移为0）；活动IME表面仍以输入区下方为锚点独立堆叠并横向居中、保留`depth`偏移。曲面窗口下，两类辅助表面均沿各自锚点的切平面定向。
 
-每个辅助表面相对输入区横向居中。输入区矩形、关联窗口倍率、辅助表面宽高或前序表面状态变化时，Engine实时重算位置与有效物理尺寸。`position`和`rotation`作为自动参考姿态上的附加偏移；零值采用默认贴合位置。
+输入区矩形、关联窗口倍率、辅助表面宽高或前序表面状态变化时，Engine实时重算位置与有效物理尺寸。`position`和`rotation`作为自动参考姿态上的附加偏移；零值采用默认贴合位置。
 
 `depth`为朝用户侧的2mm偏移。Engine将头显位置变换到关联窗口局部空间，局部Z小于0时取`-0.002`米，其余情况取`0.002`米；头显姿态不可用时取`0.002`米。辅助表面沿用关联窗口的激光手别限制。
 
@@ -2094,6 +2232,7 @@ SDK在本地批量记录绘图指令，提交时将每个节点的指令放入`c
 |`outline_rectangle`|`rectangle`、`color`、`thickness`|矩形描边|
 |`draw_line`|`x1`、`y1`、`x2`、`y2`、`color`、`thickness`|绘制直线|
 |`draw_text`|`rectangle`、`text`、`font`、`color`、`center`|在矩形区域绘制文字|
+|`draw_rich_text`|`rectangle`、`font`、`foreground_color`、`multiline`、`horizontal_alignment`、`vertical_alignment`、`rich_text_list`|在同一文字布局中绘制带独立样式的片段|
 |`push_clip`|`rectangle`|压入矩形裁剪区域|
 |`pop_clip`|仅`type`|弹出当前裁剪区域|
 |`fill_ellipse`|`ellipse`、`color`|填充椭圆或圆|
@@ -2101,7 +2240,7 @@ SDK在本地批量记录绘图指令，提交时将每个节点的指令放入`c
 |`fill_rounded_rectangle`|`rectangle`、`radius_x`、`radius_y`、`color`|填充圆角矩形|
 |`outline_rounded_rectangle`|`rectangle`、`radius_x`、`radius_y`、`color`、`thickness`|圆角矩形描边|
 |`draw_image`|`rectangle`、`image_width`、`image_height`、`pixel_data`、`opacity`|绘制RGBA像素图片|
-|`draw_screen`|`rectangle`、`screen_id`|绘制Engine宿主机的实时显示器内容|
+|`draw_screen`|`rectangle`、`screen_id`，可选`accept_pointer`|绘制Engine宿主机的实时显示器内容|
 |`fill_path`|`path`、`color`|填充路径|
 |`outline_path`|`path`、`color`、`thickness`|路径描边|
 
@@ -2134,6 +2273,54 @@ SDK在本地批量记录绘图指令，提交时将每个节点的指令放入`c
 }
 ```
 
+#### 富文本命令
+
+`font`的`underline`和`strikethrough`为可选布尔值，默认`false`，适用于`draw_text`和`draw_rich_text`。
+
+`rich_text_list`按显示顺序保存片段。每段的`text`为字符串，`foreground_color`和`background_color`为可选RGBA整数。省略时分别使用命令的`foreground_color`和透明背景。片段的`font`对象可覆盖`family`、`size`、`bold`、`italic`、`underline`和`strikethrough`。省略的字段继承命令的字体。字体族须非空且不含NUL，字号须大于0。
+
+各段在同一个DirectWrite布局中排版，样式按转换后的UTF-16范围应用。片段背景按行绘制。`multiline`开启时支持显式换行及按矩形宽度自动折行。`horizontal_alignment`接受`left`、`center`和`right`，作用于每一行。`vertical_alignment`接受`top`、`center`和`bottom`，作用于整块文字。绘制结果裁剪在`rectangle`内。
+
+```json
+{
+    "type": "draw_rich_text",
+    "rectangle":
+    {
+        "left": 24.0,
+        "top": 24.0,
+        "width": 240.0,
+        "height": 60.0
+    },
+    "font":
+    {
+        "family": "Segoe UI",
+        "size": 18,
+        "bold": false,
+        "italic": false
+    },
+    "foreground_color": 4294967295,
+    "multiline": true,
+    "horizontal_alignment": "left",
+    "vertical_alignment": "top",
+    "rich_text_list":
+    [
+        {
+            "text": "状态 ",
+            "font": {}
+        },
+        {
+            "text": "就绪",
+            "foreground_color": 2162478079,
+            "font":
+            {
+                "bold": true,
+                "underline": true
+            }
+        }
+    ]
+}
+```
+
 #### 图片命令
 
 `image_width/image_height`为大于零的uint64像素尺寸。`pixel_data`为原始RGBA像素字节的标准Base64字符串；像素从左上角开始，按从左到右、从上到下的行顺序紧密排列，每像素依次为R/G/B/A四个字节；RGB保存原始通道值，Engine在图形接口边界执行alpha预乘转换。解码后的字节数须等于`image_width × image_height × 4`，尺寸乘法须能被接收进程的内存尺寸类型表示。`rectangle`指定目标绘制区域，`opacity`控制整体透明度。
@@ -2159,9 +2346,11 @@ SDK在本地批量记录绘图指令，提交时将每个节点的指令放入`c
 
 #### 屏幕命令
 
-`draw_screen`在指定逻辑矩形内绘制Engine宿主机的显示器内容。`screen_id`为宿主机DXGI显示器枚举的0起始序号；SDK选择该显示器，Engine采集原生分辨率图像、合成Windows鼠标并在GPU上绘制。
+`draw_screen`在指定逻辑矩形内绘制Engine宿主机的显示器内容。`screen_id`为宿主机DXGI显示器枚举的0起始序号。Engine在GPU上绘制显示器内容，并按显示器方向处理桌面与光标。
 
-显示矩形决定窗口内的显示大小。要按原始像素显示1920×1080的画面，可使用同样逻辑宽高的矩形，并保持窗口的`physical_scale`。显示器内容变化由Engine更新，窗口继续使用已提交的绘图节点。采集可用性通过`screen_state`反馈。
+DXGI提供独立光标时，Helper单独传输可见性、虚拟桌面热点位置及形状信息。Engine按形状修订号缓存RGBA数据并在绘制时合成光标。启用`accept_pointer`时，激光命中屏幕画面或在该画面上开始拖拽后，Engine使用当前渲染帧的激光落点对齐光标热点。其他情况下，独立光标按系统位置和可见性绘制。`accept_pointer`省略时为`false`。驱动把光标写入桌面帧时，Engine显示驱动提供的画面。
+
+显示矩形决定窗口内的显示大小：等尺寸绘制采用线性采样，缩放绘制采用高质量三次插值（`D2D1_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC`）。普通窗口重绘完成后，Engine将内容复制到带完整Mipmap链的提交纹理并生成Mipmap，再提交给SteamVR Overlay以提升远距离清晰度。要按原始像素显示1920×1080的画面，可使用同样逻辑宽高的矩形，并保持窗口的`physical_scale`。显示器内容变化由Engine更新，窗口继续使用已提交的绘图节点。采集可用性通过`screen_state`反馈。
 
 ```json
 {
@@ -2264,11 +2453,13 @@ Engine → 本机SDK：
 
 ## 生命周期与审计边界
 
-### SteamVR断线与恢复
+### SteamVR连接、断开与恢复
 
-Engine以`vrserver.exe`的PID和创建时间识别SteamVR实例。处理`VREvent_Quit`时先确认退出，再释放OpenVR连接。进程退出、帧同步调用失败或OpenVR连接失效时，Engine释放旧Overlay并暂停VR跟踪，继续提供IPC服务，保留应用和输入组件会话及已提交的窗口状态。
+Engine启动后立即初始化IPC并可先于SteamVR接受应用连接。探测SteamVR时，Engine要求当前Windows会话内同一安装目录的`vrserver.exe`与`vrmonitor.exe`均处于运行状态，且命名空间及对应服务端、合成器IPC管道均可连接，然后以`VRApplication_Background`后台类型初始化OpenVR（不会主动拉起SteamVR）。
 
-旧实例完全退出且新实例启动后，Engine重新初始化OpenVR，加载动作清单，按需切换图形适配器，并根据当前窗口状态恢复Overlay、纹理、可见性、位姿、曲率与激光跟踪。
+Engine以`vrserver.exe`的进程标识和创建时间识别SteamVR实例。进程退出、帧同步调用失败或OpenVR连接失效时，Engine释放旧Overlay、手柄输入和OpenVR连接，暂停VR跟踪，并继续提供IPC服务和维护现有应用、Desktop、layout及IME会话。断开期间提交的窗口状态仍由Engine保存。
+
+收到`VREvent_Quit`或检测到服务端退出时，Engine先确认退出并释放旧OpenVR连接，记录旧实例身份以避免重连退出中的进程，待新的SteamVR实例就绪后重新初始化OpenVR。恢复时重新加载动作清单，按需切换图形适配器，从当前窗口状态重建可见Overlay并恢复纹理、可见性、位姿、曲率以及激光追踪。关闭SteamVR后可重新启动SteamVR以恢复显示。
 
 ### 会话与进程归属
 
@@ -2290,7 +2481,7 @@ SDK建立新会话后重建窗口和绘图缓存，当前窗口与输入界面�
 
 配置中的组件启动后进入`starting`，须在10秒内连接、鉴权并注册，才进入`running`；启动失败、提前退出、注册超时则回到`stopped`并记录错误。配置示例：
 
-以下是安装后`bin/config.json`中的输入组件配置片段。可执行路径相对于该文件所在的`bin/`。
+config.json中相关配置片段：
 
 ```json
 {
@@ -2299,35 +2490,37 @@ SDK建立新会话后重建窗口和绘图缓存，当前窗口与输入界面�
         {
             "name": "standard_104",
             "role": "layout",
-            "executable": "../app/layout/standard_104/easyvrui_layout_standard_104.exe",
+            "executable": "easyvrui_layout.exe",
             "argument_list": []
         },
         {
             "name": "EasyVRUI English",
             "role": "ime",
             "language": "en",
-            "executable": "../app/ime/en/easyvrui_english/easyvrui_ime_english.exe",
+            "executable": "easyvrui_ime_english.exe",
             "argument_list": []
         },
         {
             "name": "EasyVRUI拼音",
             "role": "ime",
             "language": "zh",
-            "executable": "../app/ime/cn/easyvrui_pinyin/easyvrui_ime_chinese_pinyin.exe",
+            "executable": "easyvrui_ime_chinese_pinyin.exe",
             "argument_list": []
         },
         {
             "name": "EasyVRUI日本語",
             "role": "ime",
             "language": "ja",
-            "executable": "../app/ime/jp/easyvrui_japanese/easyvrui_ime_japanese.exe",
+            "executable": "easyvrui_ime_japanese.exe",
             "argument_list": []
         }
     ]
 }
 ```
 
-每项的`name`、`role`和`executable`必填且为字符串，名称和路径须为非空。layout名称保持唯一，IME名称在同一语言内保持唯一。`role`取`layout`或`ime`。`argument_list`为字符串数组，省略时为`[]`。IME的`language`为非空字符串，默认`en`，常用代码为`zh/en/ja`。layout省略该字段。安装器登记上述四项及其安装路径。Engine读到缺少`provider_list`的手工配置时会填入内置默认项，显式`"provider_list": []`表示空列表。
+每项配置的`name`、`role`和`executable`必填且为字符串，名称和可执行路径须为非空；layout名称保持唯一，IME名称在同一语言内保持唯一。`role`取`layout`或`ime`，`argument_list`为字符串数组，省略时为`[]`。IME的`language`为非空字符串，默认`en`，常用代码为`zh/en/ja`；layout省略该字段。可执行文件相对路径以config.json所在目录为基准。省略`provider_list`时创建standard_104布局、EasyVRUI English、EasyVRUI拼音和EasyVRUI日本語四项默认配置；显式`provider_list: []`表示空配置列表。
+
+`desktop`对象和`provider_list`每项支持布尔字段`run_as_administrator`。在已有对象中省略该字段时按`false`处理。首次生成的Desktop配置为`true`，layout和IME使用普通权限。普通权限Engine按管理员配置启动本机子进程时使用Windows提权确认，SDK应用启动使用其独立的权限规则。
 
 Engine启动时加载配置列表并尝试启动全部配置程序。列表ID在每次运行时分配；配置组件退出后保留条目并切换为未启动状态，引擎仍运行时可再次调用start/select。
 
@@ -2341,19 +2534,19 @@ Engine启动时加载配置列表并尝试启动全部配置程序。列表ID在
 
 #### Desktop应用
 
-安装后的`bin/config.json`用`desktop`指定由Ctrl+Pause唤起的程序。
+`config.json`根对象中的`desktop`指定由Ctrl+Pause唤起的普通应用：
 
 ```json
 {
     "desktop":
     {
-        "executable": "../app/desktop/easyvrui_desktop.exe",
+        "executable": "easyvrui_desktop.exe",
         "argument_list": []
     }
 }
 ```
 
-`executable`为非空路径字符串，相对路径以配置文件所在目录为基准。`argument_list`为字符串数组，省略时为`[]`。安装器写入上述Desktop入口。Desktop的普通应用列表来自`app/desktop/config.json`和用户配置，在Desktop进程内按应用ID合并。配置文件及写入规则见[应用清单](./application_manifest#desktop应用列表)。
+省略`desktop`时生成上面的默认配置。`executable`为非空路径字符串，相对路径以配置文件所在目录为基准；`argument_list`为字符串数组，省略时为`[]`。
 
 Engine首次响应Ctrl+Pause时启动配置程序；后续按下在Desktop窗口的显示与隐藏之间切换，复用仍在运行的进程及窗口实例。程序退出后，下次调用可重新启动。默认Desktop通过SDK创建采用world参考对象的应用列表窗口，显示应用图标、日期时间和网络状态，其窗口、事件和会话采用普通应用规则。Engine退出时关闭自己启动并拥有的Desktop子进程。
 
@@ -2370,7 +2563,7 @@ Engine通过`window_visibility`要求SDK显示或隐藏Desktop窗口。SDK调用
 * TLS公钥指纹验证服务器身份，HMAC通过共享接入凭据验证客户端的接入资格。
 * 会话token必须与当前连接匹配，资源操作按所属会话执行。
 * 普通窗口操作按本会话局部ID查找。跨会话输入界面定位由Engine根据当前应用、输入矩形和活动组件解析。
-* provider输入要求发送者为当前活动组件、存在有效当前窗口、输入区及活动IME，符合当前排空阶段；layout新的按下事件还要求虚拟模式且该组件实际参与输入路径。layout按其界面交互产生按键，具体表面的显示状态由组件维护。`ime_submit`由活动IME提交最终文本。
+* provider输入要求发送者为当前活动组件、存在有效当前窗口及输入区，并符合当前排空阶段；layout新的按下事件还要求虚拟模式且该组件实际参与输入路径。layout按其界面交互产生按键，具体表面的显示状态由组件维护。`ime_submit`由活动IME提交最终文本。
 
 #### 会话操作权限
 
@@ -2388,4 +2581,4 @@ Engine通过`window_visibility`要求SDK显示或隐藏Desktop窗口。SDK调用
 
 Engine调用Windows键盘hook/热键、剪贴板、进程与TLS接口，以及SteamVR/OpenVR和Direct3D/Direct2D/DirectWrite。
 
-keyboard模块与Engine同进程，通过内部队列及共享状态通信。layout与IME作为独立进程通过TCP/TLS注册。安装时Engine与输入组件分别部署到`bin/`与`app/`，各自的内置语言包编入二进制。配置和TLS密钥由对应本机模块管理。
+keyboard模块与Engine同进程，通过内部队列及共享状态通信。layout与IME是独立普通应用，通过TCP/TLS协议注册和通信。配置文件、语言包和TLS密钥由对应本机模块管理。

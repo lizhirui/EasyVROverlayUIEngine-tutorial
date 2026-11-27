@@ -1752,7 +1752,7 @@ Toolbar buttons inherit from `button`, and the constructed name is read-only. Th
 
 Declaration: `class toolbar_button_collection`.
 
-Is a button container belonging to the toolbar. The constructor is private and provided by toolbar.get_button_list(). It can be queried by index or name, with unique names within the container. add/insert can accept either shared_ptr or <toolbar_button>, and can also create and return a button reference based on the name. insert is used to append when reaching the end; remove returns shared_ptr or <toolbar_button>; get_item_list returns a copy of the pointer list.
+Is a button container belonging to the toolbar. The constructor is private and provided by toolbar.get_button_list(). It can be queried by index or name, with unique names within the container. add/insert can accept `shared_ptr<toolbar_button>`, and can also create and return a button reference based on the name. insert is used to append when reaching the end; remove returns `shared_ptr<toolbar_button>`; get_item_list returns a copy of the pointer list.
 
 |Declaration|Purpose and calling semantics|
 |---|---|
@@ -2621,8 +2621,8 @@ Connect to the layer error key and localize exceptions.
 
 |Declaration|Purpose and Return Values|
 |---|---|
-|`using localized_invalid_argument = localized_exception<invalid_argument>`|Aliases for localized_exception and <invalid_argument>.|
-|`using localized_runtime_error = localized_exception<runtime_error>`|Aliases for localized_exception and <runtime_error>.|
+|`using localized_invalid_argument = localized_exception<invalid_argument>`|Alias for `localized_exception<invalid_argument>`.|
+|`using localized_runtime_error = localized_exception<runtime_error>`|Alias for `localized_exception<runtime_error>`.|
 |`string_view get_language_key(language_key_t key)`|Convert the error enumeration to language keys.|
 |`string get_localized_error(language_key_t key, const vector<string> &argument_list = {})`|Generate localized error text based on language_key_t and argument_list.|
 |`void select_error_language(const string &language)`|Select the connection error language.|

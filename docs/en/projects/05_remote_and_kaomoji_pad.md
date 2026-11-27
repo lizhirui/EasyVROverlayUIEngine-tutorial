@@ -51,7 +51,7 @@ The following two diagrams use fake addresses and local status events to show th
 
 Local demonstration of ![remote connection configuration with](/images/en/project_kaomoji_config.png)
 
-Test state](/images/en/project_kaomoji_connected.png) after ![configuration verification is completed
+![configuration verification is completed](/images/en/project_kaomoji_connected.png)
 
 If the program on the other computer also runs VRChat, OSC receives communication with EasyVRUI as two separate paths. Remote connection only determines the target for the SDK to send drawing commands and input events; it cannot automatically forward the application's local loopback UDP. To allow additional applications to send OSC, clearly define the location of the VRChat process and select its actual target, avoiding using the Engine service address as the OSC port. For deployment acceptance, you can first run a minimum window and add the input component after seeing normal input and exit on the remote side.
 

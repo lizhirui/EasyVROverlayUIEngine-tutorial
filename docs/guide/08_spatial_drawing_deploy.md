@@ -22,11 +22,11 @@
 |`position`|`vec3` / `vec3_t`|`vec3(0, 0, 0)`|读写|窗口**左上角**相对参考目标的偏移，单位**米**。|
 |`rotation`|`vec3` / `vec3_t`|`vec3(0, 0, 0)`|读写|XYZ欧拉角（单位**度**，组合顺序`Rz * Ry * Rx`）。|
 |`physical_scale`|`float` / `double`|`1.0`|读写|物理缩放倍数（须为正有限数）。`1.0`时`1`逻辑像素 = `1毫米`！|
-|`physical_width` / `physical_height`|`float` / `double`|计算值|只读|实际物理宽高（米）= `rect.width * physical_scale / 1000.0`。|
+|`physical_width` / `physical_height`|`float` / `double`|计算值|只读|完整表面（含控制框、标题栏、菜单栏与客户区）的展开物理宽高（米）= `完整表面逻辑宽高 * physical_scale / 1000.0`。|
 |`curvature`|`float` / `double`|`0.0`|读写|圆柱曲率（单位`m⁻¹`），`0`为平面；须满足`k >= 0`且`k * physical_width < 2π`（手柄交互上限为`160°`）。|
 |`startup_position`|`startup_position` / `startup_position_t`|`center`|读写|`center`首次显示自动居中在头显/来源窗前方；自己设`position`绑手腕时务必改成`none`！|
-|`tracking_mode_set`|`set[reference_object_type]`|五种全含|读写|标题栏`⊕`按钮可选模式集合；设为空集合`set()`隐藏切换按钮。|
-|`show_title_bar` / `show_close_button` / `movable` / `resizable` / `curvature_adjustable`|`bool`|全`True`|读写|标题栏、关闭按钮、抓取移动、右下角缩放、左下角曲率柄开关。|
+|`tracking_mode_set`|`set[reference_object]` / `std::set<reference_object_t>`|五种全含|读写|标题栏`⊕`按钮可选模式集合；设为空集合`set()`隐藏切换按钮。|
+|`show_title_bar` / `show_border` / `show_close_button` / `movable` / `rotatable` / `resizable` / `scalable` / `curvature_adjustable`|`bool`|全`True`|读写|标题栏、描边、关闭按钮、侧握移动、双手控制环旋转、扳机拖动客户区逻辑尺寸、右下角物理缩放柄、左下角曲率柄开关。|
 |`reparent(ref, keep_world = False)`|方法|—|—|切换参考系；`keep_world = True`可让窗口在换锚点瞬间保持在原地不瞬移！|
 |`center_at_view(distance) -> bool`|方法|—|—|把窗口直接拉到当前视线前方`distance`米处居中。|
 |`world_transform`（C++：`get_world_transform()`）|`pose \| None` / `optional<pose_t>`|—|只读|返回窗口**中心点**当前在世界空间中的`pose`（跟踪不可用时返回`None`）。|
@@ -155,11 +155,11 @@ int main()
 
 ::: code-group
 ```python [Python（第2步新增）]
-from easyvrui import reference_object_type, startup_position, vec3
+from easyvrui import reference_object, startup_position, vec3
 
 window_main.show_title_bar = False
 window_main.startup_position = startup_position.none
-window_main.reference_object = reference_object_type.left
+window_main.reference_object = reference_object.left
 window_main.physical_scale = 0.5
 window_main.curvature = 1.2
 window_main.position = vec3(-0.05, 0.06, 0.08)
@@ -169,7 +169,7 @@ window_main.rotation = vec3(-45.0, 20.0, 0.0)
 ```cpp [C++（第2步新增）]
 window_main->set_show_title_bar(false);
 window_main->set_startup_position(easyvrui::startup_position_t::none);
-window_main->set_reference_object(easyvrui::reference_object_t{easyvrui::reference_object_type_t::left});
+window_main->set_reference_object(easyvrui::reference_object_t::left);
 window_main->set_physical_scale(0.5);
 window_main->set_curvature(1.2);
 window_main->set_position(easyvrui::vec3_t{-0.05, 0.06, 0.08});
@@ -186,11 +186,11 @@ window_main->set_rotation(easyvrui::vec3_t{-45.0, 20.0, 0.0});
 ::: code-group
 ```python [Python（第3步新增）]
 def dial_watch_click(source, event):
-    if window_main.reference_object.type == reference_object_type.left:
-        window_main.reparent(reference_object_type.world, keep_world = True)
+    if window_main.reference_object == reference_object.left:
+        window_main.reparent(reference_object.world, keep_world = True)
         dial_watch.accent_color = 0x4ADE80FF
     else:
-        window_main.reference_object = reference_object_type.left
+        window_main.reference_object = reference_object.left
         window_main.position = vec3(-0.05, 0.06, 0.08)
         window_main.rotation = vec3(-45.0, 20.0, 0.0)
         dial_watch.accent_color = 0x38BDF8FF
@@ -202,13 +202,13 @@ dial_watch.on_click += dial_watch_click
 ```cpp [C++（第3步新增）]
 dial_watch->on_click += [=](easyvrui::control_base &, easyvrui::event_args_t &)
 {
-    if(window_main->get_reference_object().type == easyvrui::reference_object_type_t::left)
+    if(window_main->get_reference_object() == easyvrui::reference_object_t::left)
     {
-        window_main->reparent(easyvrui::reference_object_t{easyvrui::reference_object_type_t::world}, true);
+        window_main->reparent(easyvrui::reference_object_t::world, true);
     }
     else
     {
-        window_main->set_reference_object(easyvrui::reference_object_t{easyvrui::reference_object_type_t::left});
+        window_main->set_reference_object(easyvrui::reference_object_t::left);
         window_main->set_position(easyvrui::vec3_t{-0.05, 0.06, 0.08});
         window_main->set_rotation(easyvrui::vec3_t{-45.0, 20.0, 0.0});
     }

@@ -34,6 +34,8 @@ Python使用表中的属性名。C++通过对应方法读写，并使用`control
 |`clear_selection_on_blank_click`|`get_clear_selection_on_blank_click`、`set_clear_selection_on_blank_click`|继承自`selection_control`，默认假。原生`combobox`沿用基类的空白区域判断，程序清除选择使用`clear_selection()`。|
 |`focusable`|`is_focusable`|只读，支持键盘焦点。可编辑模式下通过输入区接收文本。|
 
+默认状态下，组合框主体使用`CONTROL_BACKGROUND_COLOR`，弹出列表使用`INPUT_BACKGROUND_COLOR`；显式设置`background_color`时两者共用该颜色（C++派生类可通过受保护的`get_popup_background_color()`读取下拉列表实际背景色）。
+
 ### 方法
 
 |Python|C++|用途|

@@ -35,7 +35,7 @@ features:
 
 |Section|What you will learn|
 |---|---|
-|[Basics](/en/basics/00_why_easyvrui)|[Installation layout and startup](/en/basics/01_install_and_setup), SteamVR controls, creating a `window`, form design, and code export|
+|[Basics](/en/basics/00_why_easyvrui)|[Installation layout and service setup](/en/basics/01_install_and_setup), [SteamVR controls and built-in apps (including EasyVRScreen)](/en/basics/02_vr_operations_and_apps), creating a `window`, form design, and code export|
 |[Guides](/en/guide/)|Look up properties, methods, and events by control. Run the accompanying C++ and Python examples.|
 |[Projects](/en/projects/01_vrc_chatbox)|Build a VRChat OSC chat tool, an instance log and gallery, an Avatar parameter panel, a wrist HUD, and a remote application.|
 |[Advanced](/en/advanced/01_architecture)|Study Engine and SDK responsibilities, TLS, sessions, rendering, input draining, and spatial math.|

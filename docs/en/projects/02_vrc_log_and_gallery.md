@@ -48,7 +48,7 @@ First, construct `menubar`, `tabcontrol`, log `tabpage`, and album `tabpage`. `w
 
 Column definitions are created as `listview_column`, with each row holding string cells in `listview_item`. When writing a batch of data, first construct a new set of items, then replace them uniformly. Single additions are suitable for infrequent updates; during high-frequency updates, there’s no need to repeatedly clear and restore selections line by line. Both languages can first retain the application data model, then map the filtered objects to the display set. When asynchronous batch updates are needed, handle them once and request one interface refresh to avoid repeatedly recalculating scroll positions.
 
-The initial view of](/images/en/project_gallery_idle.png) for the four fictional room events in ![
+![The initial view of](/images/en/project_gallery_idle.png)
 
 ## Step 2: Reliable tracking of new logs
 
@@ -66,7 +66,7 @@ The existing code uses `combobox` to select "all," "only add," or "only leave." 
 
 Some logs contain context events of entering instances, which may occur before player lines. The parser can maintain active rooms at session levels and then attach recognizable room keys to new events. When a room changes, update the associated status first, then record subsequent player actions. Late events from old log files cannot be attached to new session rooms. During verification, prepare at least two rooms with the same player name, then add a record with only name and action, without room context. If the filtering result is correct, unknown rooms will remain in the all view and will not be incorrectly assigned to two known rooms.
 
-The view](/images/en/project_gallery_filtered.png) after combined filtering by room and player in ![
+![The view](/images/en/project_gallery_filtered.png)
 
 ## Step four: Building photo index and high-resolution preview
 

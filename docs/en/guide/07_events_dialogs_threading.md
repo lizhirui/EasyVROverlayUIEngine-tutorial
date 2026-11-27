@@ -54,7 +54,7 @@ flowchart LR
 - Modal interaction constraints apply to the direct owner. Other interactive windows and pending commands can still be processed by the same event loop.
 - Complete shared state modifications and release the application lock before calling `show_dialog()`. The inner loop may trigger other callbacks before entering application logic.
 - A modal window can be opened through a click event. Entering the modal state is prohibited during the drawing callback period.
-- Rules for space focus, dialog box lifecycle, and data submission are described in the built-in dialog box](/en/guide/09_builtin_dialogs) of [.
+- Rules for space focus, dialog box lifecycle, and data submission are described in the built-in [Built-in dialogs](/en/guide/09_builtin_dialogs).
 
 ## Update the background task submission interface
 

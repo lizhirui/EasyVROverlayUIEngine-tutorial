@@ -58,9 +58,10 @@ VRで`textbox`または編集可能な`combobox`をクリックすると、Engin
 |**`Alt`**|物理キーボードモードで現在のウィンドウに有効な`menubar`がある|押している間はニーモニックの下線を表示します。単独で押して離すと、キーボードによるメニュー操作に入るか、そこから抜けます。|
 |**`Ctrl + Shift`**|物理キーボードモードで現在のウィンドウがある|現在の入力言語の中でIMEを切り替えます。|
 |**`Tab` / `Shift + Tab`**|現在のウィンドウがある|ウィンドウ内のコントロールに設定されたTab順で、次または前のコントロールにフォーカスを移します。|
-|**`PrintScreen`**|物理キーボードモードで現在のウィンドウがある|現在のVR視点を撮影し、Windowsのクリップボードへコピーします。|
+|**`PrintScreen`**|物理キーボードモードで現在のウィンドウがある|現在のVR視点をPNGおよびWindowsビットマップ形式でクリップボードへコピーし、視野中央に約2秒の入力透過トーストを表示します。|
+|**`Alt + PrintScreen`**|物理キーボードモードで現在のウィンドウがある|選択中の通常ウィンドウの平面D3Dレンダーテクスチャをクリップボードへコピーし、約2秒の入力透過トーストを表示します。|
 |**`Ctrl + Pause`**|**グローバル**（ウィンドウを選択していなくても有効）|**Desktop（VRアプリランチャー）**の表示と非表示を切り替えます。|
-|**`Ctrl + Alt + Pause`**|**グローバル**|**`body`のトラッキング中心**と**`world`の空間オフセット**をリセットし、ウィンドウの基準を現在のヘッドセットの正面に戻します。|
+|**`Ctrl + Alt + Pause`**|**グローバル**|**`body`のトラッキング中心**と**`world`の空間オフセット**をリセットし、新しいWorld原点に15秒間赤い十字を表示します。|
 
 ::: warning `Pause`で切り替わらない場合
 物理キーボードモードを有効にする前に、対象のVRウィンドウをレーザーでクリックします。これでEngineに有効な現在のウィンドウが設定されます。物理キーボードモードを終了すると、キー入力はWindowsデスクトップに戻ります。
@@ -76,25 +77,30 @@ VRで`textbox`または編集可能な`combobox`をクリックすると、Engin
 
 ![Desktopのアプリランチャー](/images/ja/desktop.png)
 
-図は、ユーザー設定にアプリを追加していない状態のDesktopです。5つのアイコンはシステム設定に登録されたC++デモ、Pythonデモ、ファイルマネージャー、フォームデザイナー、タスクマネージャーです。
+インストーラーはシステム設定（`app/desktop/config.json`）に6つのアプリを登録します：C++デモ、Pythonデモ、EasyVRScreen（スクリーンビューアー）、File Manager、Form Designer、Task Manager。付属GUIアプリの操作エラーはVR内の`messagebox` / `show_messagebox`ダイアログで通知されます。
 
-- **表示**。`Ctrl+Pause`を押します。Engineは設定に指定された`app/desktop/easyvrui_desktop.exe`を使用します。
-- **配置とアプリ一覧**。表示のたびに`world`を参照し、現在のヘッドセットの正面に配置します。Desktopは、`app/desktop/config.json`の付属アプリと`%USERPROFILE%\easyvrui\desktop\config.json`のユーザー追加アプリを、アプリIDを基準にメモリ内で統合します。追加・削除はユーザー設定だけに書き込みます。
+- **表示**。`Ctrl+Pause`を押します。Engineは設定に指定された`app/desktop/easyvrui_desktop.exe`（既定で`run_as_administrator: true`）を使用します。
+- **配置とアプリ一覧**。表示のたびに`world`を参照し、現在のヘッドセットの正面に配置します。Desktopは、`app/desktop/config.json`の付属アプリと`%USERPROFILE%\easyvrui\desktop\config.json`のユーザー追加アプリを、アプリIDを基準にメモリ内で統合し、マニフェストの`run_as_administrator`バッジ表示と管理者起動に対応します。
 - **非表示**。右上の閉じるボタンはDesktopのウィンドウを非表示にします。バックグラウンドプロセスは動作を続け、もう一度`Ctrl + Pause`を押すとすぐに表示できます。
 
-### 2. File Manager（VRファイルマネージャー）
+### 2. EasyVRScreen（マルチモニターVRスクリーンビューアー）
+
+- **起動**。Desktopから開くか、`app/easyvrscreen/easyvrui_screen.exe`（`app/easyvrscreen/easyvrscreen.easyvrui`）を直接実行します。
+- **主な機能**。Windowsの各モニターに対して独立した枠なし曲面対応VRウィンドウを生成し、モニター着脱に自動同期します。画面下部ホバーでツールバーが表示され、ポインター・キーボード・仮想キーボード・IMEの切替、リアルタイムのキャプチャ／描画FPS表示、リセット・ピン留め・終了を操作できます。設定は`%LOCALAPPDATA%\easyvrui\easyvrscreen\config.json`に保存されます。
+
+### 3. File Manager（VRファイルマネージャー）
 
 ![File Managerのフォルダー表示](/images/ja/file_manager.png)
 
 - **起動**。Desktopから開くか、`app/file_manager/easyvrui_file_manager.exe`を直接実行します。
-- **主な機能**。VR内でローカルディスクやフォルダーを閲覧し、パスを確認してアプリを起動できます。複数のウィンドウを同時に開けます。
+- **主な機能**。VR内でローカルディスク、ネットワークドライブ（UNCパス表示）、`\\server`共有列挙およびディレクトリを閲覧できます。パンくず／テキスト編集対応アドレスバー、バックグラウンドのボリューム情報取得（`easyvrui_volume_query.exe`）、`.easyvrui`起動、関連付け（`file_manager.json`）および管理者起動に対応します。
 
-### 3. Task Manager（VRタスクマネージャー）
+### 4. Task Manager（VRタスクマネージャー）
 
 ![Task Managerのアプリセッション一覧](/images/ja/task_manager.png)
 
 - **起動**。Desktopから開くか、`app/task_manager/easyvrui_task_manager.exe`を直接実行します。
-- **主な機能**。Engineに接続中のすべてのアプリセッション、ウィンドウの`name`と`title`、メモリ使用量、CPU・GPUの使用率をリアルタイムで確認できます。指定したウィンドウを閉じたり、アプリプロセスを終了したりできます。Desktopと入力コンポーネントはシステムで保護されます。
+- **主な機能**。接続中のアプリセッション、ウィンドウの`name`/`title`、メモリおよびCPU/GPU指標に加え、独立した**GPUタブ**でアダプター切替、PID／アプリ別グループ化、専用／共有VRAM・3D/Copy使用率の表示、および確認付きのプロセス終了に対応します。
 
 ### 4. 独立した仮想キーボード（`standard_104`）
 

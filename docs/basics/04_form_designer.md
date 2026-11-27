@@ -13,12 +13,13 @@
 1. **顶部`menubar`与`toolbar`**：
    - **文件 / 视图 / 布局 / 运行 / 导出**：支持新建/打开`.easyvruifrm`设计文件、网格吸附、画布缩放、对齐/等宽等高/层次调整、**启动或停止VR实时预览**，以及**导出Python / 导出C++**。
 2. **左侧控件栏（Toolbox）与对象树（Object Tree）**：
-   - **控件栏**：提供`label`、`button`、`textbox`、`combobox`、`listbox`、`listview`、`grid`、`checkbox`、`radiobutton`、`numericupdown`、`slider`、`progressbar`、`panel`、`scrollpanel`、`tabcontrol`、`treeview`、`image`、`screen`、`splitter`、`menubar`等全部内置控件。
+   - **控件栏**：按注册表提供全部已注册的内置控件，例如`label`、`rich_label`、`button`、`textbox`、`combobox`、`datetime_selector`、`listbox`、`listview`、`grid`、`checkbox`、`radiobutton`、`numericupdown`、`slider`、`progressbar`、`panel`、`scrollpanel`、`tabcontrol`、`treeview`、`image`、`screen`、`splitter`、`menubar`、`toolbar`、`blank`。
    - **对象树**：展示完整的父子层级结构，控件重叠时可在对象树中直接选中目标控件。
 3. **中间设计画布**：
    - 对应VR窗口的可视化编辑区，支持网格吸附、框选多选、拖拽调整尺寸以及撤销/重做（`Ctrl+Z` / `Ctrl+Y`）。
+   - 对于`tabcontrol`，点击画布页签或在对象树中选择页签只切换设计态当前可见页，便于向不同页拖放和编辑子控件；窗体运行时的初始选中页通过属性面板的`selected_index`配置。
 4. **右侧属性栏**：
-   - `name`固定在最顶部，其余属性按字母顺序排列，可直接修改文本、颜色、字体、曲率、`tooltip_text`和`tag`等属性。
+   - `name`固定在最顶部，其余属性按字母顺序排列，可直接修改文本、颜色、字体、曲率、`tooltip_text`、`tag`和`datetime`等属性。编辑`datetime_selector`的`datetime`属性时，点击属性值直接打开内嵌原生`datetime_selector`控件的编辑对话框（支持日历选日期、时间微调、Clear清空与确定写回），设计文件保存为`YYYY-MM-DD HH:MM:SS`字符串或`null`。
 
 ---
 
@@ -30,8 +31,10 @@
 
 点击菜单 **文件 → 新建窗体**（或使用默认新建的空窗体），然后点击 **文件 → 保存**，保存为`quick_shout_window.easyvruifrm`。
 
-::: tip 窗体类名的生成规则
-属性栏中窗体的`name`为**只读**，直接对应`.easyvruifrm`的文件名（不包含扩展名）。例如保存为`quick_shout_window.easyvruifrm`，导出的类名即为`quick_shout_window`。如需重命名，可通过文件菜单中的“移动设计文件”完成，设计器会自动同步窗体名称。
+::: tip 窗体类名的生成规则与外部文件监测
+属性栏中窗体的`name`为**只读**，直接对应`.easyvruifrm`的文件名（不包含扩展名）。通过导出菜单生成布局代码时，文件与类名统一附加`_ui`后缀（已有`_ui`后缀时保留单个后缀）：例如`quick_shout_window.easyvruifrm`导出为`quick_shout_window_ui.py`或`quick_shout_window_ui.h`与`quick_shout_window_ui.cpp`，布局类名为`quick_shout_window_ui`，构造函数默认`name`参数仍为`quick_shout_window`。如需重命名，可通过文件菜单中的“移动设计文件”完成。
+
+设计器同时监测已打开文件在磁盘上的外部变化或删除：检测到外部修改时弹出重载确认（本地有未保存改动时另行提示，确认重载会重建画布并停止当前预览）；拒绝重载后继续编辑并在保存时遇到外部更新会弹出覆盖确认。
 :::
 
 ### 2. 添加控件到画布
@@ -67,21 +70,22 @@
 确认`easyvrui_engine.exe`正在运行后，点击工具栏上的 **运行 → 启动**：
 - 若存在未保存更改，设计器会提示“保存并启动”；
 - 启动后窗体会在SteamVR中实时运行，可以直接测试点击`textbox`以及将激光悬停在`button`上查看`tooltip_text`效果；
-- 预览完成后，再次点击**停止**即可返回编辑状态。
+- 预览期间属性栏切换为只读显示大纲中主选控件的运行时属性；点击属性栏顶部锁按钮可冻结快照，带差异的属性行或结构体字段可通过右侧应用按钮写回设计文档（支持撤销/重做）；
+- 预览完成后，再次点击**停止**即可返回设计期编辑状态。
 
 ---
 
 ## 代码导出与业务逻辑
 
 界面设计完成后，点击菜单 **导出 → 导出Python** 或 **导出 → 导出C++**：
-- 导出Python会在`.easyvruifrm`同目录生成`quick_shout_window.py`；
-- 导出C++会在同目录生成`quick_shout_window.h`与`quick_shout_window.cpp`，并在构造函数中完成全部控件初始化。
+- 导出Python会在`.easyvruifrm`同目录生成`quick_shout_window_ui.py`（类`quick_shout_window_ui`继承`easyvrui.window`）；
+- 导出C++会在同目录生成`quick_shout_window_ui.h`与`quick_shout_window_ui.cpp`（类`quick_shout_window_ui`继承`easyvrui::window`，构造函数中完成全部控件初始化）。
 
 ### 在应用代码中实现事件
 
 导出的文件**仅包含界面布局代码**（创建控件、设置属性、加入`control_list`），所有子控件均以`name`作为公开成员暴露。
 
-**推荐采用组合模式**：新建自己的业务类（如`my_shout_app`），在其中创建并持有`quick_shout_window`实例，再通过`ui`成员绑定按钮点击事件。点击后，业务方法读取`textbox`内容并更新`label`文本。
+**推荐采用组合或派生模式**：新建自己的业务类（如`my_shout_app`），持有或派生导出的布局类（当前导出器生成`quick_shout_window_ui`，下方随仓示例工程中的预置布局类为`quick_shout_window`），再通过成员绑定按钮点击事件。点击后，业务方法读取`textbox`内容并更新`label`文本。
 
 ::: code-group
 ```python [Python（my_shout_app.py）]

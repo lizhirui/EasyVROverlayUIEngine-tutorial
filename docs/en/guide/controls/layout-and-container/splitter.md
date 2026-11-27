@@ -50,7 +50,7 @@ Property names in the Python usage table. C++ is read and written through corres
 
 The two-section workspace starts from 42% of the first section's width. After dragging the separator bar to the right, the left and right `panel`s are rearranged, and the bottom status changes to "Layout proportion updated".
 
-Prepare, build, and install](/en/basics/01_install_and_setup) by pressing [. The following command is executed in the x64 developer CMD at the root directory of the tutorial repository. Change the example SDK path to the actual installation location.
+First start Engine as described in [Prerequisites, build, and installation](/en/basics/01_install_and_setup). The following command is executed in the x64 developer CMD at the root directory of the tutorial repository. Change the example SDK path to the actual installation location.
 
 ### C++
 

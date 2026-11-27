@@ -59,7 +59,7 @@ Property names in the Python usage table. C++ is read and written through corres
 
 Run the "synchronization cycle". After expansion, select "every 15 minutes", and the status text will be updated to the selected cycle. The examples only accept the listed selections based on business enumeration.
 
-Prepare, build, and install](/en/basics/01_install_and_setup) by pressing [. The following command is executed in the x64 developer CMD at the root directory of the tutorial repository. Change the example SDK path to the actual installation location.
+First start Engine as described in [Prerequisites, build, and installation](/en/basics/01_install_and_setup). The following command is executed in the x64 developer CMD at the root directory of the tutorial repository. Change the example SDK path to the actual installation location.
 
 ### C++
 

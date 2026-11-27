@@ -42,14 +42,14 @@ build.bat --configuration Release --parallel 8
 
 ### コンポーネントごとのビルドディレクトリ
 
-ルートの`build.bat`はCMDでMSVC x64環境を一度初期化し、12個のコンポーネントの`build.bat`を順に呼び出します。各コンポーネントは自身の`build/`で設定とコンパイルを実行します。表の出力先は各コンポーネントからの相対パスです。
+ルートの`build.bat`はCMDでMSVC x64環境を一度初期化し、13個のコンポーネントの`build.bat`を順に呼び出します。各コンポーネントは自身の`build/`で設定とコンパイルを実行します。表の出力先は各コンポーネントからの相対パスです。
 
 |コンポーネントのディレクトリ|ビルドの出力|
 |---|---|
 |`sdk/engine_interface`|`build/lib/`に静的ライブラリ、DLLのインポートライブラリ、CMakeパッケージ。`build/bin/`にDLL、`build/include/`に公開ヘッダー。|
-|`sdk/api/python`|`build/bin/`にPython SDKパッケージと`engine_interface_native*.pyd`。|
-|`engine`|`build/bin/`に`easyvrui_engine.exe`とSteamVRのアクションリソース。|
-|`app/desktop`、`app/form_designer`、`app/file_manager`、`app/task_manager`、`app/demo/cpp`|それぞれの`build/bin/`に実行ファイルとビルドで生成したリソース。|
+|`sdk/api/python`|`build/bin/`にPython SDKパッケージ、`engine_interface_native.pyd`、`engine_interface_native.json`。|
+|`engine`|`build/bin/`に`easyvrui_engine.exe`、`easyvrui_service.exe`、`easyvrui_screen_helper.exe`とSteamVRのアクションリソース。|
+|`app/desktop`、`app/easyvrscreen`、`app/form_designer`、`app/file_manager`、`app/task_manager`、`app/demo/cpp`|それぞれの`build/bin/`に実行ファイルとビルドで生成したリソース（`app/easyvrscreen`は`easyvrui_screen.exe`と`easyvrscreen.easyvrui`、`app/file_manager`は`easyvrui_volume_query.exe`も生成）。|
 |`app/layout/standard_104`、`app/ime/cn/easyvrui_pinyin`、`app/ime/en/easyvrui_english`、`app/ime/jp/easyvrui_japanese`|それぞれの`build/bin/`に実行ファイル。中国語ピンインと日本語のIMEは`build/bin/rime/`にコンパイル済み辞書も生成します。|
 
 ### コンポーネントを個別にビルドする
@@ -69,14 +69,21 @@ build.bat --configuration Release
 
 ## 手順3　実行環境をインストールする
 
-12個のコンポーネントをビルドしたら、ソースリポジトリのルートから`install.bat`を実行します。CMDのインストーラーは各コンポーネントの`build/`を参照し、すべてのビルドが完了し、構成がそろっていることを確認します。Python DemoとC++ APIヘッダーは各ソースディレクトリからコピーします。インストール先にはソースリポジトリと分離したディレクトリを選びます。
+13個のコンポーネントをビルドしたら、ソースリポジトリのルートから`install.bat`を実行します。インストール先にはソースリポジトリと分離したローカル絶対パスを明示指定します（省略時は使い方を出力して終了コード`2`を返します）。
+
+サービスインストール（既定モード：管理者保護ディレクトリを指定し、Windowsサービス`EasyVROverlayUIEngine`の登録・起動とシステム環境変数`EASYVROVERLAYUIENGINE_HOME`の設定を行います）：
 
 ```cmd
 cd /d "D:\program\project\EasyVROverlayUIEngine\repo"
-install.bat "D:\Tools\EasyVRUI"
+install.bat "%ProgramFiles%\EasyVRUI"
 ```
 
-インストール先の引数を省略すると、`install.bat`が入力を求めます。
+ポータブルインストール（サービス登録と環境変数書き込みをスキップし、`bin\easyvrui_engine.exe`を手動起動します）：
+
+```cmd
+cd /d "D:\program\project\EasyVROverlayUIEngine\repo"
+install.bat "D:\Tools\EasyVRUI" --no-service
+```
 
 
 新規インストールでは次の構成になります。アプリの相対パスは`repo/app/`のディレクトリ構成に対応します。

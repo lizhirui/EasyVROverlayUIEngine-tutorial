@@ -51,7 +51,7 @@ Property names in the Python usage table. C++ is read and written through corres
 
 The main `panel` group displays synchronization services. The inner `panel` shows connection details; clicking "Hide connection details" hides the entire section, and clicking again restores it. The effect diagram shows the restored interface.
 
-Prepare, build, and install](/en/basics/01_install_and_setup) by pressing [. The following command is executed in the x64 developer CMD at the root directory of the tutorial repository. Change the example SDK path to the actual installation location.
+First start Engine as described in [Prerequisites, build, and installation](/en/basics/01_install_and_setup). The following command is executed in the x64 developer CMD at the root directory of the tutorial repository. Change the example SDK path to the actual installation location.
 
 ### C++
 

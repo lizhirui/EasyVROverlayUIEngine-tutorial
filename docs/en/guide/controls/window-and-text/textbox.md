@@ -55,7 +55,7 @@ C++ properties can be read and written through the access methods in the table; 
 
 Run and edit any line, observing the status text update. Clicking "Select All Notes" requests `textbox` focus and selects the field text. The effect shows the highlighting after selecting all.
 
-First, prepare, build, and install](/en/basics/01_install_and_setup) using [environment. Open an x64 CMD with MSVC configured in the root directory of the tutorial repository, using the actual installed SDK path.
+First start Engine as described in [Prerequisites, build, and installation](/en/basics/01_install_and_setup). Open an x64 CMD with MSVC configured in the root directory of the tutorial repository, using the actual installed SDK path.
 
 ### C++
 

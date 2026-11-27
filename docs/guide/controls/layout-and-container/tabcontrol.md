@@ -42,6 +42,7 @@ Python使用表中的属性名。C++通过对应方法读写，并使用`control
 |`tabcontrol(name)`|`tabcontrol(name)`|构造控件。|
 |`page_list.add(page)`|`get_page_list().add(page)`|追加页面。用`insert`按索引插入，用`remove`移出，用`clear`清空。|
 |`page_list[index]`、`page_list[name]`|`get_page_list()[index]`、`get_page_list()[name]`|按索引或名称访问`tabpage`。C++也可调用`get_page(index)`或`get_page(name)`。|
+|`get_header_index_at(left, top)`|`get_header_index_at(left, top)`|按控件本地坐标查询命中的页签索引；未命中或命中关闭按钮、导航箭头时返回`None`/`std::nullopt`。|
 
 ### 事件
 
@@ -105,3 +106,4 @@ examples\guide\controls\layout-and-container\tabcontrol\python\run.cmd
 - 把内容控件放入对应`tabpage`。页签尺寸增大时内容区域相应缩小，侧边页签需要为完整标题和关闭入口留出宽度。
 - 关闭入口产生`on_page_close`通知。根据页面的未保存状态决定何时移出，并通过`on_page_removed`确认集合已经变化。
 - 使用`tabpage.text`修改显示标题，业务标识使用构造名称或`tag`。
+- 在[Form Designer](/basics/04_form_designer)中设计多页窗体时，直接点击画布页签或对象树中的页面即可切换设计态当前可见页并向各页拖放控件；运行时的默认初始页仍由属性面板中的`selected_index`决定。

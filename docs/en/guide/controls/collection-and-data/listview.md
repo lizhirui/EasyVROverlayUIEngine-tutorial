@@ -67,7 +67,7 @@ Both types of collections support reading, appending, inserting, removing, and c
 
 Select "Synchronize Audio", and the status area displays the current record. Column titles, row objects, and selection status are updated individually.
 
-Prepare, build, and install the](/en/basics/01_install_and_setup) Engine according to the [environment. Execute the command in the x64 Developer CMD of the tutorial root directory, and replace the SDK installation path in the example.
+First start Engine as described in [Prerequisites, build, and installation](/en/basics/01_install_and_setup). Execute the command in the x64 Developer CMD of the tutorial root directory, and replace the SDK installation path in the example.
 
 ### C++
 

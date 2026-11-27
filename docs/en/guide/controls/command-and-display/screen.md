@@ -38,10 +38,10 @@ C++ reads and writes attributes using the methods in the table. In Python, acces
 |Event|Parameter types|Trigger conditions|
 |---|---|---|
 |`on_screen_id_changed`|`event_args_t`|The number actually changes.|
-|`on_screen_unavailable`|`event_args_t`|ZZZ-1234567890: From Available to Unavailable. Switching IDs will also reset the current available status.|
+|`on_screen_unavailable`|`event_args_t`|: From Available to Unavailable. Switching IDs will also reset the current available status.|
 |`on_screen_restored`|`event_args_t`|Changes from unavailable to available.|
 
-## No-headshot and actual capture
+## Headless and actual capture
 
 WARP test host uses an invalid display number to maintain no desktop input in the capture background and sends the test status to the SDK. The status text is updated by the real-time event handler of the routine. The placeholder area in the screenshot does not contain actual desktop frames. When the actual engine is connected and a valid display number is selected, the capture image is rendered by the engine onto the `screen` rectangle.
 
@@ -49,7 +49,7 @@ WARP test host uses an invalid display number to maintain no desktop input in th
 
 Run "Display Output Monitoring," with the control defaulting to 0. The status area updates based on the recovery or interruption of the capture. The demo image shows that after a recovery event occurs, the status text is updated, and the no-headshot environment retains the drawn area.
 
-Prepare, build, and install the](/en/basics/01_install_and_setup) Engine according to the [environment. Execute the command in the x64 Developer CMD of the tutorial root directory, and replace the SDK installation path in the example.
+First start Engine as described in [Prerequisites, build, and installation](/en/basics/01_install_and_setup). Execute the command in the x64 Developer CMD of the tutorial root directory, and replace the SDK installation path in the example.
 
 ### C++
 

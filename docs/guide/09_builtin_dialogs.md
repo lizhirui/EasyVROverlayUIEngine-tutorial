@@ -43,6 +43,8 @@ result = dialog.show_dialog(window_main)
 
 按钮集支持`ok`、`ok_cancel`、`abort_retry_ignore`、`yes_no_cancel`、`yes_no`和`retry_cancel`。指定默认项时选择当前按钮集内的有效结果。
 
+此外，SDK还提供立即返回的异步通知入口`show_messagebox(message, title, icon, owner)`（`owner`必填），适合展示错误或状态提醒；当`owner`暂时隐藏时，消息框会在该窗口显示时自动打开，内置应用普遍使用它搭配`get_user_error_message()`展示本地化错误提示。
+
 ![messagebox保存确认](/images/zh/dialog_messagebox.png)
 
 ## inputbox
@@ -55,7 +57,7 @@ result = dialog.show_dialog(window_main)
 
 用于选择已有路径。`initial_directory`和`initial_filename`设置起始位置和名称。通过`filter_list`提供`file_filter_t`或Python的`file_filter`，其成员为`name`和`pattern_list`。过滤器索引从0开始。启用`multi_select`可返回多个路径。取消返回空集合。
 
-`confirm_text`可定制确认按钮标题。可选的`directory_changed`和`filter_changed`回调分别接收路径和索引，适合记录下次打开的选项。
+`confirm_text`可定制确认按钮标题。可选的`directory_changed`和`filter_changed`回调在显示前同步收到初始值，后续在UI线程收到变化，适合记录下次打开的选项。文件对话框顶部内置`file_address_bar`地址栏，支持点击面包屑层级、点击`>`展开子目录、点击空白处或按`Alt+D`/`Ctrl+L`编辑完整路径（含映射盘与`\\server`网络共享），按`Enter`导航或按`Esc`恢复层级显示。
 
 ![file_open_dialog选择已有文件](/images/zh/dialog_file_open.png)
 

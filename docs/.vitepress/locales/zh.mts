@@ -39,6 +39,7 @@ export const zh: LocaleSpecificConfig<DefaultTheme.Config> & { label: string; li
           items: [
             { text: 'window', link: '/guide/controls/window-and-text/window' },
             { text: 'label', link: '/guide/controls/window-and-text/label' },
+            { text: 'rich_label', link: '/guide/controls/window-and-text/rich_label' },
             { text: 'button', link: '/guide/controls/window-and-text/button' },
             { text: 'textbox', link: '/guide/controls/window-and-text/textbox' }
           ]
@@ -50,7 +51,8 @@ export const zh: LocaleSpecificConfig<DefaultTheme.Config> & { label: string; li
             { text: 'radiobutton', link: '/guide/controls/selection-and-status/radiobutton' },
             { text: 'progressbar', link: '/guide/controls/selection-and-status/progressbar' },
             { text: 'slider', link: '/guide/controls/selection-and-status/slider' },
-            { text: 'numericupdown', link: '/guide/controls/selection-and-status/numericupdown' }
+            { text: 'numericupdown', link: '/guide/controls/selection-and-status/numericupdown' },
+            { text: 'datetime_selector', link: '/guide/controls/selection-and-status/datetime_selector' }
           ]
         },
         {

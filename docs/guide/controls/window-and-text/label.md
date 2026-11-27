@@ -12,7 +12,7 @@
 
 ## 属性对比
 
-从上至下保留同一文字，依次展示默认外观、大号粗体、绿色文字与实色背景、禁用后的文字颜色。`label`没有独立的对齐属性，需要改变摆放时调整`rect`。需要精确对齐时使用自定义绘图。
+从上至下保留同一文字，依次展示默认外观、大号粗体、绿色文字与实色背景、禁用后的文字颜色。`label`同时支持`multiline`与水平/垂直对齐（`horizontal_alignment`、`vertical_alignment`）；需要逐片段混排不同颜色或字体时可使用[rich_label](./rich_label)。
 
 ![label属性对比](/images/zh/label_comparison.png)
 
@@ -25,6 +25,9 @@ C++属性通过表中的访问方法读写，Python通过同名属性访问。�
 |属性|C++|用途与默认值|
 |---|---|---|
 |`text`|`get_text`、`set_text`|读写显示文字，默认空字符串。|
+|`multiline`|`get_multiline`、`set_multiline`|是否允许换行与折行，默认`false`。|
+|`horizontal_alignment`|`get_horizontal_alignment`、`set_horizontal_alignment`|水平对齐：`left`、`center`、`right`，默认`left`。|
+|`vertical_alignment`|`get_vertical_alignment`、`set_vertical_alignment`|垂直对齐：`top`、`center`、`bottom`，默认`center`。|
 |`font`、`foreground_color`、`background_color`|`get_font`、`set_font`、`get_foreground_color`、`set_foreground_color`、`get_background_color`、`set_background_color`|继承样式属性。默认字号18，背景为透明。|
 
 ### 方法
@@ -38,6 +41,7 @@ C++属性通过表中的访问方法读写，Python通过同名属性访问。�
 |事件|触发条件与参数|
 |---|---|
 |`on_text_changed`|文字实际改变，参数为`event_args_t`。|
+|`on_multiline_changed`、`on_horizontal_alignment_changed`、`on_vertical_alignment_changed`|多行开关或水平、垂直对齐方式实际改变，参数为`event_args_t`。|
 
 ## 独立例程
 

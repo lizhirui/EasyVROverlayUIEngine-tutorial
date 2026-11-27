@@ -72,7 +72,7 @@ The page text control is added to the `control_list` of the page, and the page i
 
 The “Synchronization Workbench” has two `tabpage`: “Overview” and “History”. By default, the “Overview” is displayed when entering, and the “History” is displayed after clicking. The renderings show the text of the second page and the selected color scheme.
 
-Prepare, build, and install](/en/basics/01_install_and_setup) by pressing [. The following command is executed in the x64 developer CMD at the root directory of the tutorial repository. Change the example SDK path to the actual installation location.
+First start Engine as described in [Prerequisites, build, and installation](/en/basics/01_install_and_setup). The following command is executed in the x64 developer CMD at the root directory of the tutorial repository. Change the example SDK path to the actual installation location.
 
 ### C++
 

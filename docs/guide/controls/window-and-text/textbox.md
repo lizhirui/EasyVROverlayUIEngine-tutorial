@@ -27,7 +27,8 @@ C++属性通过表中的访问方法读写，Python通过同名属性访问。�
 |`text`|`get_text`、`set_text`|文本，初始为空。赋值应用多行与长度限制。|
 |`read_only`|`get_read_only`、`set_read_only`|初始为假。启用后保留光标、选择和复制，阻止用户更改文本。|
 |`selectable`|`get_selectable`、`set_selectable`|初始为真。关闭后停用文本选择和编辑路径，控件仍可获得焦点。|
-|`multiline`|`get_multiline`、`set_multiline`|初始为假。启用后保留换行并支持Enter换行。|
+|`multiline`|`get_multiline`、`set_multiline`|初始为假。启用后保留换行并支持Enter换行；关闭横向滚动条时按视口宽度在字素边界折行，开启横向滚动条时按显式换行分行。|
+|`horizontal_alignment`、`vertical_alignment`|`get_horizontal_alignment`、`set_horizontal_alignment`、`get_vertical_alignment`、`set_vertical_alignment`|水平对齐（默认`left`）与垂直对齐（默认`center`）；文本块高度超出视口时从顶部开始滚动，IME输入条跟随光标所在视觉行定位。|
 |`horizontal_scrollbar_visible`、`vertical_scrollbar_visible`|`get_horizontal_scrollbar_visible`、`set_horizontal_scrollbar_visible`、`get_vertical_scrollbar_visible`、`set_vertical_scrollbar_visible`|初始均为假。分别控制横向和纵向滚动条。|
 |`max_length`|`get_max_length`、`set_max_length`|文本码点数量上限，默认0表示无限制。|
 |`selection_start`、`selection_length`|`get_selection_start`、`set_selection_start`、`get_selection_length`、`set_selection_length`|选区起点和长度，以码点索引表示，初始均为0。|
@@ -49,6 +50,7 @@ C++属性通过表中的访问方法读写，Python通过同名属性访问。�
 |`on_text_changed`、`on_read_only_changed`、`on_selectable_changed`|文字或对应开关实际改变，参数为`event_args_t`。|
 |`on_selection_changed`、`on_max_length_changed`、`on_multiline_changed`|选区、长度上限或多行设置变化，参数为`event_args_t`。|
 |`on_horizontal_scrollbar_visible_changed`、`on_vertical_scrollbar_visible_changed`|对应滚动条开关变化，参数为`event_args_t`。|
+|`on_horizontal_alignment_changed`、`on_vertical_alignment_changed`|水平或垂直对齐方式变化，参数为`event_args_t`。|
 |`on_text_input`|文本输入通知，参数为`text_input_event_args_t`。|
 
 ## 独立例程

@@ -50,7 +50,7 @@ Property names in the Python usage table. C++ is read and written through corres
 
 Monitors volume starting from 35. When dragging `slider`, `on_value_changed` synchronously updates `progressbar` and the explanatory text. A screenshot shows the state after dragging the slider to the high volume area.
 
-Prepare, build, and install](/en/basics/01_install_and_setup) by pressing [. The following command is executed in the x64 developer CMD at the root directory of the tutorial repository. Change the example SDK path to the actual installation location.
+First start Engine as described in [Prerequisites, build, and installation](/en/basics/01_install_and_setup). The following command is executed in the x64 developer CMD at the root directory of the tutorial repository. Change the example SDK path to the actual installation location.
 
 ### C++
 

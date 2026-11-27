@@ -55,7 +55,7 @@ Property names in the Python usage table. C++ is read and written through corres
 
 “Sync Task” loads 8 items. Clicking the third item “Sync Image” updates the status text. Scroll down to view the last item, and use the direction keys to change the selection.
 
-Prepare, build, and install](/en/basics/01_install_and_setup) by pressing [. The following command is executed in the x64 developer CMD at the root directory of the tutorial repository. Change the example SDK path to the actual installation location.
+First start Engine as described in [Prerequisites, build, and installation](/en/basics/01_install_and_setup). The following command is executed in the x64 developer CMD at the root directory of the tutorial repository. Change the example SDK path to the actual installation location.
 
 ### C++
 

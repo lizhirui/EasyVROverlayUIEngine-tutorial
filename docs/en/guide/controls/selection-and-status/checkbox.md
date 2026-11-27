@@ -46,7 +46,7 @@ C++ properties can be read and written through the access methods in the table; 
 
 Initially, only the "Show unread status" option is selected. After checking "Play notification sound," the other option remains selected, and the status text is updated. Switching again can turn off the notification sound.
 
-First, prepare, build, and install](/en/basics/01_install_and_setup) using [environment. Open an x64 CMD with MSVC configured in the root directory of the tutorial repository, using the actual installed SDK path.
+First start Engine as described in [Prerequisites, build, and installation](/en/basics/01_install_and_setup). Open an x64 CMD with MSVC configured in the root directory of the tutorial repository, using the actual installed SDK path.
 
 ### C++
 

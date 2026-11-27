@@ -6,7 +6,7 @@
 
 C++的`event_container<T>`与Python事件容器均支持`+=`和`-=`。回调接收来源对象和事件参数。使用`event.add(callback)`可得到订阅标识，使用`remove`或`-=`退订。订阅多个回调时，按注册顺序执行。可写的`handled`或`cancel`在返回时用于后续事件处理。
 
-`event_args_t`是无附加字段的基类。以下18种参数全部继承它，Python类型名省略`_t`。处理简单事件时从`source`读取提交后的控件状态。专用事件通过类型字段提供额外上下文。
+`event_args_t`是无附加字段的基类。以下19种参数全部继承它，除`global_pointer_event_args_t`外Python类型名省略`_t`。处理简单事件时从`source`读取提交后的控件状态。专用事件通过类型字段提供额外上下文。
 
 |C++参数类型|字段|典型来源|
 |---|---|---|
@@ -27,6 +27,7 @@ C++的`event_container<T>`与Python事件容器均支持`+=`和`-=`。回调接�
 |`tree_node_event_args_t`|`node`|节点选择、展开、折叠和激活|
 |`render_error_event_args_t`|`message`|窗口绘制失败|
 |`controller_event_args_t`|`hand`、`trigger`、`grip`、`joystick_x/y`、`joystick_pressed`、`primary`、`secondary`|派生控件的手柄输入|
+|`global_pointer_event_args_t`|`hand`、`button`、`timestamp_ms`|`window.on_global_pointer_down/up`全局手柄按键边沿，隐藏或失焦窗口同样接收|
 |`control_input_event_args_t`|`type`、`hand`、`key`、`text`、`left/top`、`x/y`、`steps`、`horizontal`、`shift/ctrl/alt/meta`、`captured`、`cancelled`、`handled`、`has_position`、`has_local_position`|派生控件的`process_input()`|
 
 ## 响应与事件分派

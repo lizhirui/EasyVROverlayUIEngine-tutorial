@@ -40,6 +40,7 @@ export const en: LocaleSpecificConfig<DefaultTheme.Config> & { label: string; li
           items: [
             { text: 'window', link: '/en/guide/controls/window-and-text/window' },
             { text: 'label', link: '/en/guide/controls/window-and-text/label' },
+            { text: 'rich_label', link: '/en/guide/controls/window-and-text/rich_label' },
             { text: 'button', link: '/en/guide/controls/window-and-text/button' },
             { text: 'textbox', link: '/en/guide/controls/window-and-text/textbox' }
           ]
@@ -51,7 +52,8 @@ export const en: LocaleSpecificConfig<DefaultTheme.Config> & { label: string; li
             { text: 'radiobutton', link: '/en/guide/controls/selection-and-status/radiobutton' },
             { text: 'progressbar', link: '/en/guide/controls/selection-and-status/progressbar' },
             { text: 'slider', link: '/en/guide/controls/selection-and-status/slider' },
-            { text: 'numericupdown', link: '/en/guide/controls/selection-and-status/numericupdown' }
+            { text: 'numericupdown', link: '/en/guide/controls/selection-and-status/numericupdown' },
+            { text: 'datetime_selector', link: '/en/guide/controls/selection-and-status/datetime_selector' }
           ]
         },
         {

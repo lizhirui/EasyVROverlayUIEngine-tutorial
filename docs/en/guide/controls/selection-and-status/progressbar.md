@@ -46,7 +46,7 @@ C++ properties can be read and written through the access methods in the table; 
 
 The total amount is 8 items, with 2 initially completed. Each click on "Complete the Next Item" updates the filling and completion numbers. The diagram shows the state of completing 5 items; once 8 items are reached, the operation entrance is disabled.
 
-First, prepare, build, and install](/en/basics/01_install_and_setup) using [environment. Open an x64 CMD with MSVC configured in the root directory of the tutorial repository, using the actual installed SDK path.
+First start Engine as described in [Prerequisites, build, and installation](/en/basics/01_install_and_setup). Open an x64 CMD with MSVC configured in the root directory of the tutorial repository, using the actual installed SDK path.
 
 ### C++
 

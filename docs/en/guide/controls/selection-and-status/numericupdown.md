@@ -49,7 +49,7 @@ Property names in the Python usage table. C++ is read and written through corres
 
 In this example, the gain is limited between 0.00 and 2.00, with an initial value of 0.75. Clicking the upper adjustment area displays 1.00, and the status text is updated accordingly. Activating the editing area also allows direct input of values and submission by pressing Enter.
 
-Prepare, build, and install](/en/basics/01_install_and_setup) by pressing [. The following command is executed in the x64 developer CMD at the root directory of the tutorial repository. Change the example SDK path to the actual installation location.
+First start Engine as described in [Prerequisites, build, and installation](/en/basics/01_install_and_setup). The following command is executed in the x64 developer CMD at the root directory of the tutorial repository. Change the example SDK path to the actual installation location.
 
 ### C++
 

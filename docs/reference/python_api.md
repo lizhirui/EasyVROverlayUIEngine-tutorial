@@ -10,9 +10,7 @@
 
 ### 1.1.应用组成
 
-安装后的Python应用使用安装根目录下的`sdk/api/python/`。该目录集中存放`easyvrui/`、静态链接的`engine_interface_native*.pyd`、原生扩展描述文件`engine_interface_native.json`和`requirements.txt`。解释器须匹配安装记录中的CPython版本和x64架构。由Desktop或File Manager通过SDK启动清单时，子进程的`PYTHONPATH`会前置此目录并保留原值，`EASYVRUI_NATIVE_DIR`也指向此目录。从CMD直接运行示例时，先将此目录前置到`PYTHONPATH`。
-
-从源码开发时，先以相同配置运行`repo/sdk/engine_interface/build.bat`和`repo/sdk/api/python/build.bat`。将`repo/sdk/api/python/`加入模块搜索路径，并将`EASYVRUI_NATIVE_DIR`设为`repo/sdk/api/python/build/bin/`。加载器也会从`EASYVRUI_ENGINE_INTERFACE`所指库文件的父目录查找扩展。使用DLL链接版扩展时，需部署匹配的`engine_interface.dll`。
+Python应用使用`repo/sdk/api/python`下的`easyvrui`包，以及与当前Python版本、位数匹配的预编译`engine_interface_native.pyd`。扩展采用DLL链接时，还需匹配的`engine_interface.dll`；采用静态链接时，原生库已包含在扩展内。API源码通过`PYTHONPATH`或应用自行设置的模块搜索路径引入。`EASYVRUI_NATIVE_DIR`可指定原生扩展所在目录；`EASYVRUI_ENGINE_INTERFACE`可指定原生库路径，加载器会同时使用其父目录搜索扩展。它们是本地模块加载配置。
 
 Python API运行部分使用标准库和预编译扩展。应用自己的Python依赖记录在对应应用目录的`requirements.txt`。示例应用位于`repo/app/demo/python`，其控件派生类属于应用示例。
 
@@ -35,10 +33,10 @@ run("example")
 
 |导入位置|公开接口|
 |---|---|
-|`easyvrui`|控件、值类型、事件、绘图、对话框、应用函数和输入组件|
+|`easyvrui`|全部公开控件（含`datetime_selector`、`file_address_bar`）、值类型、事件、绘图、对话框、应用函数、系统路径/权限/图标工具和输入组件|
 |`easyvrui.application`|`run`、`set_application_name`、`pump`、输入界面及应用管理函数|
-|`easyvrui.application_management`|应用清单、启动、运行快照及会话与窗口管理|
-|`easyvrui.control`|控件及其集合|
+|`easyvrui.application_management`|应用清单、启动、管理员权限、系统路径打开、系统与文件图标、运行快照及会话与窗口管理|
+|`easyvrui.control`|控件及其集合（`file_address_bar`的公开入口位于顶层`easyvrui`）|
 |`easyvrui.common.color/rect/font`|颜色、矩形和字体|
 |`easyvrui.common.error`|语言选择和本地化异常|
 |`easyvrui.geometry`|`vec3`、`quat`、`pose`|
@@ -53,51 +51,58 @@ run("example")
 |---|---|---|---|
 |`application_entry`|`application_runtime`|`application_snapshot`|`application_type`|
 |`application_window`|`blank`|`button`|`cancel_event_args`|
-|`checkbox`|`close_application_window`|`color`|`color_dialog`|
-|`combobox`|`combobox_dropdown_style`|`container_control`|`control`|
-|`control_base`|`control_collection`|`control_collection_event_args`|`control_input_event_args`|
-|`control_input_type`|`controller_event_args`|`dialog_result`|`drawing_fill_rule`|
-|`drawing_image`|`drawing_path`|`drawing_path_operation`|`drawing_path_segment`|
-|`engine_error`|`error_diagnostic`|`error_key`|`event_args`|
-|`event_container`|`file_filter`|`file_open_dialog`|`file_save_dialog`|
-|`font`|`font_dialog`|`get_application_directory`|`get_application_snapshot_list`|
-|`get_error_diagnostic`|`get_error_language`|`get_error_message`|`get_language_key`|
-|`get_localized_error`|`get_preferred_ui_language`|`get_reference_object_type_name`|`grid`|
-|`grid_cell`|`grid_cell_event_args`|`grid_cell_render`|`grid_column`|
-|`grid_column_event_args`|`grid_selection_mode`|`hide_input_ui`|`image`|
-|`image_stretch_mode`|`input_event`|`input_event_type`|`input_provider`|
-|`input_provider_state`|`input_role`|`input_ui_state`|`inputbox`|
-|`interaction_end_event_args`|`item_collection`|`item_control`|`key_event_args`|
-|`keyboard_key`|`keyboard_modifier`|`label`|`language_key`|
-|`language_pack`|`launch_application`|`listbox`|`listview`|
-|`listview_cell_collection`|`listview_column`|`listview_column_collection`|`listview_column_event_args`|
-|`listview_item`|`listview_item_collection`|`listview_item_event_args`|`localized_invalid_argument`|
-|`localized_runtime_error`|`measure_text`|`menu_container`|`menu_item_event_args`|
-|`menubar`|`menuitem`|`messagebox`|`messagebox_button`|
-|`messagebox_button_set`|`messagebox_icon`|`numericupdown`|`orientation`|
-|`panel`|`parse_keyboard_key`|`parse_reference_object_type`|`pointer_event_args`|
-|`pose`|`progressbar`|`property_changed_event_args`|`provider_info`|
-|`pump`|`quat`|`radiobutton`|`read_application_entry`|
-|`rect`|`reference_object`|`reference_object_type`|`render_context`|
-|`render_error_event_args`|`render_rectangle`|`render_style`|`request_application_snapshot_list`|
-|`request_close_application_window`|`request_error`|`request_terminate_application`|`run`|
-|`screen`|`scroll_event_args`|`scrollpanel`|`select_error_language`|
-|`selection_control`|`set_application_name`|`show_input_ui`|`slider`|
-|`splitter`|`startup_position`|`tab_position`|`tabcontrol`|
-|`tabpage`|`tabpage_collection`|`tabpage_event_args`|`terminate_application`|
-|`text_control`|`text_input_event_args`|`textbox`|`toolbar`|
-|`toolbar_button`|`toolbar_button_collection`|`tree_node`|`tree_node_collection`|
-|`tree_node_event_args`|`treeview`|`vec3`|`window`|
+|`checkbox`|`close_application_window`|`color_dialog`|`color`|
+|`combobox_dropdown_style`|`combobox`|`container_control`|`control_base`|
+|`control_collection_event_args`|`control_collection`|`control_input_event_args`|`control_input_type`|
+|`control`|`controller_event_args`|`datetime_selector`|`dialog_result`|
+|`drawing_fill_rule`|`drawing_image`|`drawing_path_operation`|`drawing_path_segment`|
+|`drawing_path`|`engine_error`|`error_diagnostic`|`error_key`|
+|`event_args`|`event_container`|`file_address_bar`|`file_filter`|
+|`file_open_dialog`|`file_save_dialog`|`font_dialog`|`font`|
+|`get_application_directory`|`get_application_snapshot_list`|`get_default_file_icon`|`get_error_diagnostic`|
+|`get_error_language`|`get_error_message`|`get_file_icon`|`get_file_icon_badge`|
+|`get_has_individual_file_icon`|`get_is_administrator`|`get_language_key`|`get_localized_error`|
+|`get_preferred_ui_language`|`get_reference_object_name`|`get_system_file_icon`|`get_system_file_info`|
+|`get_system_path_requires_administrator`|`get_user_error_message`|`global_pointer_event_args_t`|`grid_cell_event_args`|
+|`grid_cell_render`|`grid_cell`|`grid_column_event_args`|`grid_column`|
+|`grid_selection_mode`|`grid`|`hide_input_ui`|`horizontal_alignment`|
+|`image_stretch_mode`|`image`|`input_event_type`|`input_event`|
+|`input_provider_state`|`input_provider`|`input_role`|`input_ui_state`|
+|`inputbox`|`interaction_end_event_args`|`item_collection`|`item_control`|
+|`key_event_args`|`keyboard_key`|`keyboard_modifier`|`label`|
+|`language_key`|`language_pack`|`launch_application`|`listbox`|
+|`listview_cell_collection`|`listview_column_collection`|`listview_column_event_args`|`listview_column`|
+|`listview_item_collection`|`listview_item_event_args`|`listview_item`|`listview`|
+|`localized_invalid_argument`|`localized_runtime_error`|`measure_text`|`menu_container`|
+|`menu_item_event_args`|`menubar`|`menuitem`|`messagebox_button_set`|
+|`messagebox_button`|`messagebox_icon`|`messagebox`|`numericupdown`|
+|`open_system_path`|`orientation`|`panel`|`parse_keyboard_key`|
+|`parse_reference_object`|`pointer_event_args`|`pose`|`progressbar`|
+|`property_changed_event_args`|`provider_info`|`pump`|`quat`|
+|`radiobutton`|`read_application_entry`|`rect`|`reference_object`|
+|`refresh_system_icon_cache`|`render_context`|`render_error_event_args`|`render_rectangle`|
+|`render_style`|`request_application_snapshot_list`|`request_close_application_window`|`request_error`|
+|`request_terminate_application`|`rich_label`|`rich_text`|`rich_text_font`|
+|`run`|`screen`|`scroll_event_args`|`scrollpanel`|
+|`select_error_language`|`selection_control`|`set_application_name`|`show_input_ui`|
+|`show_messagebox`|`slider`|`splitter`|`startup_position`|
+|`system_file_info`|`tab_position`|`tabcontrol`|`tabpage_collection`|
+|`tabpage_event_args`|`tabpage`|`terminate_application`|`text_control`|
+|`text_input_event_args`|`textbox`|`toolbar_button_collection`|`toolbar_button`|
+|`toolbar`|`tree_node_collection`|`tree_node_event_args`|`tree_node`|
+|`treeview`|`vec3`|`vertical_alignment`|`window`|
 
 ### 1.3.设计文件导出布局
 
 生成的Python布局文件使用`import easyvrui`。全部非root控件以`self.<control.name>`公开，属性名与控件name完全一致；名称在整份设计中唯一，符合C++与Python标识符规则，并避开root SDK公开入口。
 
-生成类自身只有`__init__`，默认name使用设计根节点的名称，例如`def __init__(self, name = "sample_form"):`。构造函数创建控件，通过`control_list`或`page_list`建立归属关系，再初始化属性和值记录。
+生成类自身只有`__init__`，默认name直接使用设计rootname字面量，例如`def __init__(self, name = "sample_form"):`。构造函数按顺序创建控件、逐个赋值属性、直接构造rect/font/vec3及集合值记录，再通过control_list或page_list安排归属。
 
-图像与图标调用`easyvrui.drawing_image.load_file()`等SDK绘图资源接口。业务类持有生成窗体实例，通过同名属性绑定事件、读取和修改控件属性。
+图像与图标调用`easyvrui.drawing_image.load_file()`等SDK绘图资源接口。属性初始化、值记录构造和集合组装均直接写在__init__中。应用派生类通过同名属性绑定事件并实现业务逻辑。
 
 Form Designer是独立app，设计文件扩展名为`.easyvruifrm`，可导出Python和C++设计代码。属性面板propertygrid属于该app内部派生控件，普通应用使用通用grid。生成的Python设计类通过公开API创建控件、配置属性并组装容器。
+
+窗体`settings`导出为`settings_ui.py`，类名为`settings_ui`。项目可同时生成用户文件`settings.py`，其中`settings`继承`settings_ui`。窗体名称已有`_ui`后缀时，界面文件和类沿用单个后缀。设计画布的页签切换只改变当前查看页，生成的界面使用文档的`selected_index`作为运行时初始页。
 
 ### 1.4.参数、返回值与数据类型
 
@@ -163,7 +168,7 @@ Form Designer是独立app，设计文件扩展名为`.easyvruifrm`，可导出Py
 
 ### 2.3.font
 
-构造为`font(family: str = "Segoe UI", size: int = font.DEFAULT_SIZE, bold: bool = False, italic: bool = False)`。类常量`font.DEFAULT_SIZE`为`18`。
+构造为`font(family: str = "Segoe UI", size: int = font.DEFAULT_SIZE, bold: bool = False, italic: bool = False, underline: bool = False, strikethrough: bool = False)`。类常量`font.DEFAULT_SIZE`为`18`。
 
 |成员|用途|
 |---|---|
@@ -171,6 +176,8 @@ Form Designer是独立app，设计文件扩展名为`.easyvruifrm`，可导出Py
 |`size: int`|读写逻辑字号，类型为无符号64位整数|
 |`bold: bool`|读写粗体状态|
 |`italic: bool`|读写斜体状态|
+|`underline: bool`|读写下划线状态|
+|`strikethrough: bool`|读写删除线状态|
 |`a == b`|逐字段比较|
 
 将字体赋给控件时，`family`须非空且不含空字符，`size`须大于`0`。读取控件的`font`属性会得到独立的字体值。修改字号时，可先取得`style = textbox_text.font`，再设置`style.size = 22`并将`style`赋回控件。
@@ -205,6 +212,7 @@ Form Designer是独立app，设计文件扩展名为`.easyvruifrm`，可导出Py
 |`euler: vec3`|只读，以度表示的XYZ欧拉角|
 |`rotate(value: vec3, /) -> vec3`|旋转向量|
 |`slerp(target: quat, amount: float) -> quat`|沿四元数最短弧插值，进度`0.0`对应当前旋转，`1.0`对应目标旋转|
+|`blend(target: quat, amount: float) -> quat`|先归一化两个四元数并选取同一半球，再线性插值并归一化结果|
 |`quat.create_from_axis_angle(axis: vec3, angle: float) -> quat`|绕指定单位轴旋转，角度单位为度|
 |`quat.create_from_axis_basis(a: vec3, b: vec3, c: vec3, /) -> quat`|从旋转后的三个正交基轴构造旋转|
 |`quat.create_from_euler(angles: vec3) -> quat`|从以度表示的XYZ欧拉角构造旋转|
@@ -230,9 +238,10 @@ Form Designer是独立app，设计文件扩展名为`.easyvruifrm`，可导出Py
 control_base
 └── control
     ├── blank
+    ├── datetime_selector
     ├── text_control
     │   ├── button
-    │   │   └── toolbar_button
+    │   │   └── toolbar_button（工具栏按钮）
     │   ├── checkbox
     │   ├── selection_control
     │   │   ├── item_control
@@ -242,6 +251,7 @@ control_base
     │   │   ├── listview
     │   │   └── treeview
     │   ├── label
+    │   ├── rich_label
     │   ├── numericupdown
     │   ├── radiobutton
     │   ├── textbox
@@ -250,6 +260,7 @@ control_base
     │   │   ├── menubar
     │   │   └── menuitem
     │   ├── panel
+    │   │   ├── file_address_bar
     │   │   └── tabpage
     │   ├── scrollpanel
     │   ├── splitter
@@ -262,7 +273,7 @@ control_base
     └── slider
 ```
 
-派生类继承祖先公开的属性、方法和事件；blank的实例隐藏规则见对应章节。普通控件通过`类型(name: str)`创建。`control_base`为Python派生类提供`super().__init__(name: str, type: str)`，直接创建control_base实例会抛TypeError。`menu_container(name: str, type: str)`提供菜单容器基类的构造入口。Python控件派生方式见“绘图与自定义控件”。
+派生类继承祖先公开的属性、方法和事件；blank的实例隐藏规则见对应章节。普通控件通过`类型(name: str)`创建（`file_address_bar(name: str, editor: textbox)`须同时提供配套编辑框）。`control_base`为Python派生类提供`super().__init__(name: str, type: str)`，直接创建control_base实例会抛TypeError。`menu_container(name: str, type: str)`提供菜单容器基类的构造入口。Python控件派生方式见“绘图与自定义控件”。
 
 Python接入适配提供`control/text_control/selection_control/item_control/container_control`的`(name: str, type: str)`构造重载，供自定义派生类型指定类型名；这些类型的单参数构造仍使用各自原生类型名。
 
@@ -283,21 +294,31 @@ Python派生类在构造函数中调用`super().__init__(name, type)`完成原�
 |`type: str`|只读|对象的控件类型名称；Python派生类沿用对应原生控件类型|
 |`disposed: bool`|只读|是否已经释放，初始为`False`|
 |`id: int`|只读|对象编号|
-|`parent: container_control \| None`|只读|直接父容器|
+|`parent: control_base \| None`|只读|直接父对象（通常为直接父容器）|
 
 |签名|用途|
 |---|---|
 |`invalidate() -> None`|请求重新绘制|
 |`dispose() -> None`|释放对象及其相关资源；容器会连带处理子对象|
 |`begin_invoke(callback: Callable[[], None], /) -> None`|安排在对象创建线程执行回调；对象失效后尚未执行的调用会取消|
-|`process_input(event: control_input_event_args, /) -> None`|处理分发给对象的输入；可由派生类覆盖|
 
 |事件|用途|
 |---|---|
 |`on_disposed`|对象释放。参数为`event_args`。|
 |`on_property_changed`|属性发生变化时触发，`event.property_name`为变化的属性名。参数为`property_changed_event_args`。|
 
+`process_input(event: control_input_event_args, /) -> None`与`on_controller_input`属于受保护的派生扩展成员，原生基类普通实例隐藏这些成员，在Python派生类中可用（见“派生控件的扩展点”）。
+
 ### 3.3.control
+
+`render_style`提供默认配色常量及静态方法`render_style.get_disabled_color(color: int) -> int`（计算禁用状态颜色）。
+
+|区域|默认背景色|控件|
+|---|---|---|
+|透明容器与内容|`0x00000000`|`label`、`checkbox`、`radiobutton`、`image`、`panel`、`scrollpanel`、`tabpage`、`screen`、`slider`、`splitter`|
+|输入与数据槽|`INPUT_BACKGROUND_COLOR = 0x080F1AFF`|`textbox`、`numericupdown`、`listbox`、`listview`、`treeview`、`grid`、`progressbar`及`combobox`下拉列表|
+|窗口与页签内容|`WINDOW_BACKGROUND_COLOR = 0x0D1624FF`|`window`主体与`tabcontrol`内容区|
+|凸起控件与顶栏|`CONTROL_BACKGROUND_COLOR = 0x162738FF`|`button`、`toolbar_button`、`combobox`主体、`menubar`、`toolbar`和普通页签|
 
 通用可视控件，增加矩形、背景、可见性、可用性及Tab顺序。
 
@@ -305,7 +326,7 @@ Python派生类在构造函数中调用`super().__init__(name, type)`完成原�
 |---|---|---|
 |`rect`|`rect(0, 60, 160, 40)`|控件逻辑矩形，可修改子字段|
 |`tooltip_text`|`str = ""`|悬停提示。窗口在激光指向控件时显示文字|
-|`background_color`|`int = 0x162738FF`|背景色|
+|`background_color`|`int = 0x162738FF`|`control`的基础背景色，具体控件采用各自的默认色|
 |`visible`|`bool = True`|是否显示|
 |`enabled`|`bool = True`|是否接受交互|
 |`tab_index`|`int = 0`|Tab导航排序，使用无符号64位整数|
@@ -317,7 +338,7 @@ Python派生类在构造函数中调用`super().__init__(name, type)`完成原�
 |`focus() -> None`|请求将焦点转移到该控件|
 |`activate() -> None`|执行控件的程序化激活动作，例如触发按钮点击或项目选择|
 |`focusable: bool`|查询是否可获得键盘焦点；普通`control`默认`False`，派生类可覆盖|
-|`absolute_rectangle: rect`|返回窗口内的控件逻辑矩形。|
+|`absolute_rectangle: rect`|返回相对于渲染表面左上角的逻辑矩形。窗口自身返回完整表面矩形。|
 |`get_input_rectangle() -> rect`|返回独立矩形，描述控件本地输入区域，派生类可覆盖。|
 |`focused: bool`|查询焦点状态。|
 |`owning_window: window \| None`|返回所属窗口。|
@@ -330,6 +351,7 @@ Tab导航只选择当前窗口可见、可用、可聚焦的控件，`Tab`前进
 |事件|用途|
 |---|---|
 |`on_background_color_changed`|背景色变化。参数为`event_args`。|
+|`on_tooltip_text_changed`|悬停提示文字变化。参数为`event_args`。|
 |`on_visible_changed`|可见性变化。参数为`event_args`。|
 |`on_enabled_changed`|可用性变化。参数为`event_args`。|
 |`on_tab_index_changed`|Tab顺序变化。参数为`event_args`。|
@@ -410,7 +432,7 @@ listbox、treeview、grid和listview的项目区域空白点击会退出文本�
 |`selected_item`|`str = ""`|只读；当前选中项目，未选择时为空字符串|
 |`row_height`|`int = 32`|读写；每行的逻辑高度，须大于`0`|
 
-修改项目集合可能清除超出范围的选中项，并将滚动位置限制在有效范围。事件为`on_item_list_changed`、`on_selected_index_changed`、`on_selection_changed`、`on_row_height_changed`，分别通知项目、索引、选择、滚动和行高变化。
+修改项目集合可能清除超出范围的选中项，并将滚动位置限制在有效范围。事件为`on_item_list_changed`、`on_selected_index_changed`、`on_selection_changed`、`on_row_height_changed`，分别通知项目、索引、选择和行高变化。
 
 ### 3.7.container_control、panel和tabpage
 
@@ -444,6 +466,8 @@ panel_main.control_list.add(button_removed)
 
 ## 4.具体控件
 
+`horizontal_alignment`包含`left`、`center`、`right`。`vertical_alignment`包含`top`、`center`、`bottom`。从`easyvrui`导入这两个枚举。
+
 ### 4.1.label
 
 继承`text_control`。构造：`label(name: str)`。
@@ -451,9 +475,38 @@ panel_main.control_list.add(button_removed)
 |成员|用途|
 |---|---|
 |`text: str = ""`|读写显示文字|
+|`multiline: bool = False`|读写多行模式|
+|`horizontal_alignment = horizontal_alignment.left`|读写各行的水平对齐|
+|`vertical_alignment = vertical_alignment.center`|读写文本块的垂直对齐|
 |`on_text_changed`|文字变化。参数为`event_args`。|
+|`on_horizontal_alignment_changed`|水平对齐变化时触发。参数为`event_args`。|
+|`on_vertical_alignment_changed`|垂直对齐变化时触发。参数为`event_args`。|
+|`on_multiline_changed`|多行开关变化时触发。参数为`event_args`。|
 
-标签用于显示文字，默认不参与键盘导航。
+多行模式接受`\n`、`\r\n`并按内容宽度在字素边界折行。每行分别水平对齐，整个文本块垂直对齐，溢出的内容在标签边界裁剪。
+
+#### 4.1.1.rich_label
+
+`rich_label(name: str)`继承`text_control`，默认背景透明。
+
+|成员|用途|
+|---|---|
+|`rich_text_list: list[rich_text]`|读取或整体替换片段列表。值变化时触发`on_rich_text_list_changed`。|
+|`multiline: bool = False`|读取或设置多行模式。值变化时触发`on_multiline_changed`。|
+|`horizontal_alignment`、`vertical_alignment`|读写水平和垂直对齐，默认为`left`和`center`。值变化时触发对应的`on_horizontal_alignment_changed`或`on_vertical_alignment_changed`。|
+
+`rich_text(text="", foreground_color=None, background_color=None, font=rich_text_font())`保存一段文字及其样式。四个字段均可读写。两个颜色字段接受RGBA整数，前景色为`None`时继承控件颜色，背景色为`None`时为透明。
+
+`rich_text_font(family=None, size=None, bold=None, italic=None, underline=None, strikethrough=None)`的每个字段均可读写。`None`继承控件字体属性，显式`False`关闭对应效果。设置的字体族须非空且不含NUL，字号须大于0。
+
+多行模式支持显式换行和自动折行。同一行的片段共享基线，各行按水平属性对齐，整个文字块按垂直属性对齐。禁用时，所有片段的文字色均应用禁用色。
+
+```python
+from easyvrui import rich_label, rich_text, rich_text_font
+
+label_status = rich_label("label_status")
+label_status.rich_text_list = [rich_text("状态 "), rich_text("就绪", foreground_color = 0x80e4abff, font = rich_text_font(bold = True, underline = True))]
+```
 
 ### 4.2.button
 
@@ -477,6 +530,8 @@ panel_main.control_list.add(button_removed)
 |`read_only`|`bool = False`|读写；限制交互编辑|
 |`selectable`|`bool = True`|读写；是否允许光标、选择和交互输入|
 |`multiline`|`bool = False`|读写；开启多行编辑与Enter换行|
+|`horizontal_alignment`|`horizontal_alignment.left`|读写每行的水平对齐|
+|`vertical_alignment`|`vertical_alignment.center`|读写文本块的垂直对齐|
 |`horizontal_scrollbar_visible`|`bool = False`|读写；横向滚动条显示开关|
 |`vertical_scrollbar_visible`|`bool = False`|读写；纵向滚动条显示开关|
 |`max_length`|`int = 0`|读写；码点数量上限，`0`表示不限制|
@@ -491,7 +546,7 @@ panel_main.control_list.add(button_removed)
 |`undo() -> bool`|撤销一次编辑。成功时返回`True`|
 |`redo() -> bool`|重做一次编辑。成功时返回`True`|
 
-文本设置和替换应用多行及长度约束；`\r\n`和`\r`归一化为`\n`，单行模式移除换行。过滤及截断保留完整文本边界。选区位置限制在有效范围内，非边界位置按选择方向调整。滚动条开关与`multiline`分别控制显示和换行能力。
+文本设置和替换应用多行及长度约束；`\r\n`和`\r`归一化为`\n`，单行模式移除换行。过滤及截断保留完整文本边界。选区位置限制在有效范围内，非边界位置按选择方向调整。多行模式下，`horizontal_scrollbar_visible=False`按视口宽度在字素边界折行，`True`保留显式分行和横向滚动。每一行放得下时水平对齐，超宽行随水平滚动移动。文本块放得下时整体垂直对齐，超高时从顶部滚动。点击、拖选、光标移动和IME定位均使用折行后的视觉行坐标。
 
 `read_only = True`允许保留光标、选择和复制，交互输入及删除保持文本不变。`selectable = False`时控件仍可获得焦点，文本光标、选择、输入编辑和IME/layout界面均停用；应用仍可通过`text`属性更新显示内容。
 
@@ -503,6 +558,8 @@ panel_main.control_list.add(button_removed)
 |`on_selection_changed`|选区或插入位置变化。参数为`event_args`。|
 |`on_max_length_changed`|长度限制变化。参数为`event_args`。|
 |`on_multiline_changed`|多行开关变化。参数为`event_args`。|
+|`on_horizontal_alignment_changed`|水平对齐变化时触发。参数为`event_args`。|
+|`on_vertical_alignment_changed`|垂直对齐变化时触发。参数为`event_args`。|
 |`on_horizontal_scrollbar_visible_changed`|横向滚动条开关变化。参数为`event_args`。|
 |`on_vertical_scrollbar_visible_changed`|纵向滚动条开关变化。参数为`event_args`。|
 |`on_text_input`|文本编辑输入通知|
@@ -515,6 +572,8 @@ panel_main.control_list.add(button_removed)
 
 继承`item_control`。构造：`combobox(name: str)`。
 
+默认主体为`render_style.CONTROL_BACKGROUND_COLOR`，下拉列表为`render_style.INPUT_BACKGROUND_COLOR`。设置自定义`background_color`时，主体和下拉列表共用该颜色。
+
 |属性|类型与初始值|用途|
 |---|---|---|
 |`dropdown_style`|`combobox_dropdown_style.dropdown_list`|`dropdown`可编辑，`dropdown_list`从列表选择|
@@ -524,6 +583,21 @@ panel_main.control_list.add(button_removed)
 事件为`on_dropdown_style_changed`、`on_text_changed`；项目和选择事件继承自`item_control`。
 
 `dropdown_list`时，非空`text`必须匹配已有项目；设为空字符串可清除选择。`dropdown`时，新文本可以使`selected_index`变为`-1`。选中项目始终通过`selected_index/selected_item`读取。下拉列表由单击展开；仅激光当前指向项显示悬停高亮。
+
+### 4.4.1.datetime_selector
+
+`datetime_selector(name)`继承`control`。读写属性`datetime: datetime.datetime | None = None`接受标准库`datetime.datetime`或`None`；赋值提取年月日时分秒六个本地钟面字段（带时区的`datetime`按其钟面字段存储，舍弃时区、微秒和`fold`），读取返回精确到秒（微秒为0）的naive `datetime.datetime`或`None`。传入非法类型时抛出错误键为`error_key.property_type_mismatch`的`engine_error`。
+
+```python
+from datetime import datetime
+import easyvrui
+
+date_input = easyvrui.datetime_selector("datetime_selector_start")
+date_input.datetime = datetime(2024, 2, 29, 9, 30)
+date_input.datetime = None
+```
+
+有效值变化时先触发`on_property_changed`（属性名`"datetime"`），再以`handler(source, event_args)`触发`on_datetime_changed`。点击输入区或聚焦时按`Enter`/`Space`展开或收起面板，失焦、点击面板外部、按`Escape`或点击OK时收起。上部日历可切换年月并点选日期，下部时、分、秒支持按钮及指向对应时间列时的滚轮/摇杆滚动。Now填入当前本地时间，Clear清空。
 
 ### 4.5.listbox
 
@@ -550,6 +624,8 @@ panel_main.control_list.add(button_removed)
 |`selected_tab_background_color`|`int = 0x316B9AFF`|读写；选中页签背景色|
 
 `tab_position`枚举可从`easyvrui`导入，成员为`top/bottom/left/right`。
+
+`get_header_index_at(left, top)`使用控件本地坐标查询页签索引。命中页签正文时返回下标，命中关闭按钮、导航箭头或空白区域时返回`None`。
 
 页面通过`page_list.add(page)`添加，页签外观和活动页面由`tabcontrol`管理。主内容区域沿用容器背景，悬停效果作用于具体页签。`tabcontrol`统一使用`page_list`；访问其`control_list`，包括经基类入口调用，会抛出包含`page_list_required`诊断的`RuntimeError`。
 
@@ -609,48 +685,54 @@ center首次定位与来源窗口平行、中心对齐，并沿朝向头显的�
 |`physical_scale`|`float = 1.0`|读写；逻辑像素物理尺寸的缩放倍数，须为正有限数；1倍时每逻辑像素为1毫米|
 |`position`|`vec3()`|读写；窗口左上角相对于参考对象的位置偏移，单位为米|
 |`rotation`|`vec3()`|读写；XYZ欧拉角，单位为度|
-|`reference_object`|`reference_object()`|读写；包含`type: reference_object_type`的参考目标记录，默认world|
+|`reference_object`|`reference_object.world`|读写；空间参考目标|
 |`show_title_bar`|`bool = True`|读写；是否显示标题栏|
-|`tracking_mode_set`|`set[reference_object_type]`|读写；标题栏跟踪选择器中的模式集合，初始包含`world/body/left/right/head`|
+|`show_border`|`bool = True`|读写。控制窗口主体描边的显示|
+|`tracking_mode_set`|`set[reference_object]`|读写；标题栏跟踪选择器中的模式集合，初始包含`world/body/left/right/head`|
 |`show_close_button`|`bool = True`|读写；标题栏关闭按钮|
 |`movable`|`bool = True`|读写；是否允许通过手柄移动和旋转|
-|`resizable`|`bool = True`|读写；是否允许交互缩放|
+|`resizable`|`bool = True`|读写。允许用扳机拖动外圈控制块调整逻辑尺寸，关闭时取消当前拖拽|
+|`scalable`|`bool = True`|读写。控制右下角物理缩放柄的显示和交互，关闭时取消当前缩放|
 |`startup_position`|`startup_position.center`|读写；接受枚举或`"none"/"center"`字符串。none使用初始位置和姿态；center首次显示时优先与来源窗口平行居中并向头显前移，无有效来源时按头显居中|
+|`rotatable`|`bool = True`|读写。允许用侧握键抓取外圈控制块旋转，关闭时取消当前旋转|
 |`curvature_adjustable`|`bool = True`|读写；控制左下角曲率按钮的显示和交互，关闭时立即取消当前拖动及摇杆调整，重新启用后松开trigger再按可开始调整|
 
-`physical_scale = 1.0`时每逻辑像素对应1毫米。`rect.width * physical_scale / 1000.0`是表面展开宽度，曲面窗口中对应展开弧长。`curvature`记为k、展开宽度记为W：属性合法域为有限`k >= 0`且`k * W < 2π`；设置曲率和缩放时均须满足这一关系。通过窗口左下角手柄入口交互调节时，采用160°的安全弧角上限；该交互上限与属性合法域分别处理。左右下角入口由trigger按住，直到松开保持选中和激光捕获；曲率用摇杆左右调节，大小用摇杆上下调节，左下角双击恢复平面。
+透明窗体使用`background_color = 0x00000000`，并将`show_title_bar`、`show_border`、`rotatable`、`resizable`、`scalable`和`curvature_adjustable`设为`False`。
 
-`reference_object_type`枚举包含`world/body/head/left/right`。`reference_object()`构造默认world记录，`reference_object(type)`接收该枚举；记录的`type`可读写。`get_reference_object_type_name(value: reference_object_type) -> str`返回名称，`parse_reference_object_type(value: str) -> reference_object_type`解析名称。两个reference_object记录按type比较；与枚举比较时使用`item.reference_object.type`，与名称比较时使用`get_reference_object_type_name(item.reference_object.type)`。
+`window.rect`的宽高是客户区逻辑尺寸。直属控件的`(0,0)`对应客户区左上角，停靠菜单栏位于其上方。普通窗口开启`rotatable`或`resizable`时四周各增加20逻辑像素。可见标题栏增加48逻辑像素，可见菜单栏增加其行高。调整这些区域时客户区尺寸和直属控件局部坐标保持不变。
 
-Python接入适配允许`reference_object`赋值及`reparent()`参数使用reference_object记录、reference_object_type枚举或五种模式名称字符串；读取reference_object始终返回记录。`tracking_mode_set`赋值接受`set`或`frozenset`，元素可为枚举，也可使用接入适配的模式字符串或reference_object记录；读取返回枚举集合快照。空集合隐藏切换按钮，需要添加模式时整体赋回。
+`physical_scale = 1.0`时每逻辑像素对应1毫米。曲率`k`须为有限非负数，乘以完整表面展开宽度`physical_width`后须小于2π。通过左下角手柄交互调节时采用160°安全上限。按住扳机捕获左右下角手柄后，摇杆左右调节曲率、上下调节物理缩放，双击左下角恢复平面。
+
+`reference_object`枚举包含`world`、`body`、`head`、`left`、`right`。`get_reference_object_name(value: reference_object) -> str`返回名称，`parse_reference_object(value: str) -> reference_object`解析名称。
+
+`reference_object`属性和`reparent()`接收枚举成员。`tracking_mode_set`接收包含枚举成员的`set`或`frozenset`，读取时返回`set`快照。空集合隐藏标题栏的切换按钮。
 
 |其他状态属性|读写及用途|
 |---|---|
 |`closed: bool`|只读；是否已关闭，初始为`False`|
 |`loaded: bool`|只读；是否已经首次显示，初始为`False`|
 |`dialog_result: dialog_result`|读写，进入模态时重置为`none`。模态期间赋非`none`的值会关闭窗口，直接关闭返回`cancel`|
-|`physical_width: float`|只读；展开宽度，等于`rect.width * physical_scale / 1000`|
-|`physical_height: float`|只读；实际高度，等于`rect.height * physical_scale / 1000`|
+|`physical_width: float`|只读，完整表面逻辑宽度乘以`physical_scale / 1000`所得的展开宽度|
+|`physical_height: float`|只读，完整表面逻辑高度乘以`physical_scale / 1000`所得的高度|
 |`auxiliary: bool`|读写；辅助输入表面标志，初始为`False`；IME/layout会话的窗口自动成为辅助表面，并由Engine维护位置、参考和跟随输入窗口的缩放|
 
 |签名|用途|
 |---|---|
-|`show() -> None`|显示普通窗口；首次显示触发加载事件|
+|`show() -> None`|显示普通窗口；首次显示触发`on_load`，从隐藏转为显示触发`on_shown`|
+|`show_hidden() -> None`|首次加载窗口并保持隐藏，触发`on_load`；已加载时直接返回，已关闭或关闭中报`error_key.window_closing`。随后调用`show()`可显示并触发`on_shown`，可见窗口使用`hide()`隐藏|
 |`hide() -> None`|隐藏窗口并取消相应交互；结束该窗口的活动模态状态|
 |`activate() -> None`|请求激活该窗口|
 |`show_dialog(owner_window: window) -> dialog_result`|同步显示模态窗口，期间禁用直接所有者并继续分发UI事件。关闭后返回结果枚举|
 |`close(force: bool = False) -> bool`|请求关闭窗口，成功时返回`True`。force为True时跳过关闭取消回调|
 |`set_size(width: int, height: int, /) -> None`|设置逻辑矩形宽高，须大于`0`|
-|`reparent(reference: reference_object \| reference_object_type \| str, keep_world: bool = False) -> None`|更换参考对象；传入keep_world=True时保持世界位姿|
+|`reparent(reference: reference_object, keep_world: bool = False) -> None`|更换参考对象；传入keep_world=True时保持世界位姿|
 |`world_transform: pose \| None`|读取当前可解析的世界位姿；跟踪参考不可用时可为`None`|
-|`is_tracking_available(mode: reference_object_type) -> bool`|查询指定参考模式当前是否可以跟踪|
+|`is_tracking_available(mode: reference_object) -> bool`|查询指定参考模式当前是否可以跟踪|
 |`center_at_view(distance: float, /) -> bool`|在视线前方指定米数处居中窗口，定位成功时返回`True`|
 
-`world_transform`返回窗口表面中心的世界位姿。`position`配置左上角偏移。直接赋值`reference_object`后，现有偏移按新参考系解释。需要保持世界位姿时使用`reparent(reference, keep_world = True)`。
+`world_transform`返回窗口表面中心对应的世界位姿；`position`配置的是左上角偏移，两者的参考点不同。直接赋`reference_object`按新的参考系解释现有偏移；需要保持世界位置时用`reparent(reference, keep_world = True)`。`show_dialog(owner_window)`要求所有者是同应用中可交互的其他窗口（跨运行环境报`error_key.client_mismatch`），待显示的对话框调用时须处于隐藏、未关闭且未处于另一段模态显示中（已加载的隐藏窗口也可调用）。
 
-`show_dialog(owner_window)`要求所有者是同一UI运行时内可交互的其他窗口，对话框须隐藏、尚未关闭且未进入模态。调用在同一UI线程进入嵌套消息循环，直接所有者暂时失去交互资格。可从按钮或菜单事件调用，并用当前可交互对话框作为下一层所有者。渲染提交期间调用会报错。详见[会话与嵌套模态循环](/advanced/04_session_and_context)。
-
-进入模态时将`dialog_result`重置为`dialog_result.none`。设置其他结果会请求关闭。处理器取消关闭时，对话框保持活动，结果恢复到设置前的值。结果仍为`none`时通过标题栏关闭按钮或`close()`成功关闭，返回`dialog_result.cancel`。调用方可保留窗口实例，在返回后读取控件值。
+在按钮或菜单回调中调用`show_dialog(owner_window)`时，SDK在UI线程继续分派消息并提交界面，直到当前对话框结束。对话框的回调也可以打开下一层。每层结束后恢复其直接所有者的交互，再返回调用点。请在普通事件回调中打开对话框，绘制及窗口提交阶段禁止进行模态等待。
 
 首次显示普通新窗口时，仅在未显式设置`physical_scale`时，依次从同session的模态owner、当前事件分发窗口、正在执行on_load的窗口、当前输入窗口、活动窗口和最近可见普通窗口中确定来源并继承其缩放。显式设置的值优先，包括1.0；显示后可再次设置比例。相同倍率下，相同逻辑尺寸的控件具有相同物理尺寸；`set_size()`改变逻辑画布及对应的物理尺寸。
 
@@ -668,7 +750,7 @@ center的模态窗口使用直接父窗口；其它center窗口优先沿用SDK�
 
 `Ctrl+Alt+Pause`将Body中心及World整体布局映射到当前头显，系统报告为`Ctrl+Alt+Break`时作用相同。`Ctrl+Pause`显示或隐藏引擎配置中的Desktop应用。
 
-可移动窗口在World和Body模式支持侧握键单手抓取；双手分别抓住外围不同控制点时进行约束轴旋转。窗口前后两面均可显示及交互，背面文字为正面镜像。窗口逻辑尺寸足够大且启用移动时，外围控制环占用逻辑矩形内侧空间；布置子控件时可参考`get_content_top()`避开标题栏。
+可移动窗口在`world`和`body`模式下支持单手侧握抓取。双手分别抓住外围不同控制块可进行约束轴旋转。窗口前后两面均可显示及交互，背面文字为正面镜像。四边单轴调整客户区尺寸，四角保持客户区起始宽高比。调整过程中窗口保持对侧锚点，激光落点随被抓住的控制块移动。右下角缩放柄由`scalable`控制。
 
 |事件|用途|
 |---|---|
@@ -683,14 +765,19 @@ center的模态窗口使用直接父窗口；其它center窗口优先沿用SDK�
 |`on_curvature_adjust_end`|曲率交互调整结束。参数为`interaction_end_event_args`。|
 |`on_reference_object_changed`|参考对象变化。参数为`event_args`。|
 |`on_show_title_bar_changed`|标题栏显示开关变化。参数为`event_args`。|
+|`on_show_border_changed`|窗口主体描边开关变化。参数为`event_args`。|
 |`on_tracking_mode_set_changed`|标题栏允许的模式集合变化。参数为`event_args`。|
 |`on_show_close_button_changed`|关闭按钮开关变化。参数为`event_args`。|
 |`on_movable_changed`|移动开关变化。参数为`event_args`。|
-|`on_resizable_changed`|缩放开关变化。参数为`event_args`。|
+|`on_rotatable_changed`|旋转交互开关变化。参数为`event_args`。|
+|`on_resizable_changed`|逻辑尺寸拖拽开关变化。参数为`event_args`。|
+|`on_scalable_changed`|物理缩放开关变化。参数为`event_args`。|
 |`on_startup_position_changed`|启动定位方式变化。参数为`event_args`。|
 |`on_curvature_adjustable_changed`|曲率交互调整开关变化。参数为`event_args`。|
-|`on_load`|第一次显示时加载，每个窗口一次。参数为`event_args`。|
+|`on_load`|首次调用`show()`或`show_hidden()`时触发，每个窗口一次。参数为`event_args`。|
 |`on_shown`|从隐藏状态显示。参数为`event_args`。|
+|`on_global_pointer_down`|任一手柄按键按下。参数为`global_pointer_event_args_t`，分发给运行时已登记且未关闭、未释放的全部窗口，与可见性、焦点和激光命中无关。|
+|`on_global_pointer_up`|任一手柄按键释放。参数为`global_pointer_event_args_t`，分发给运行时已登记且未关闭、未释放的全部窗口，与可见性、焦点和激光命中无关。|
 |`on_hidden`|隐藏。参数为`event_args`。|
 |`on_closing`|关闭前询问；可写`event.cancel = True`取消普通关闭。参数为`cancel_event_args`。|
 |`on_closed`|完成关闭；数据可包含关闭`reason`。参数为`event_args`。|
@@ -701,8 +788,10 @@ center的模态窗口使用直接父窗口；其它center窗口优先沿用SDK�
 |`on_deactivated`|窗口失去激活。参数为`event_args`。|
 |`on_move_start`|移动或约束旋转开始。参数为`event_args`。|
 |`on_move_end`|移动或约束旋转结束。参数为`interaction_end_event_args`。|
-|`on_resize_start`|交互缩放开始。参数为`event_args`。|
-|`on_resize_end`|交互缩放结束。参数为`interaction_end_event_args`。|
+|`on_resize_start`|窗口逻辑尺寸拖拽开始。参数为`event_args`。|
+|`on_resize_end`|窗口逻辑尺寸拖拽结束。参数为`interaction_end_event_args`。|
+|`on_scale_start`|物理缩放开始。参数为`event_args`。|
+|`on_scale_end`|物理缩放结束或取消。参数为`interaction_end_event_args`。|
 
 三维位置变化使用继承的`on_moved`，物理宽度变化使用继承的`on_size_changed`。窗口隐藏或关闭会取消抓取、指针捕获及关联输入界面。关闭后需要创建新窗口实例再次显示。
 
@@ -743,10 +832,11 @@ center的模态窗口使用直接父窗口；其它center窗口优先沿用SDK�
 |`selected_index: int`、`selected_item: listview_item \| None`|读写主选择，空选择对应`-1`及`None`。|
 |`select_item(index, extend = False, toggle = False)`|按下标选择行。多选时可扩展选区或切换目标行。|
 |`selected_item_list: list[listview_item]`、`multi_select: bool`|读取选区对象、设置多选。|
-|`row_height`、`header_height`|读写行高和表头高度，`header_height = 0`隐藏表头。|
+|`row_height: int = 30`、`header_height: int = 32`|读写行高（默认30）和表头高度（默认32），`header_height = 0`隐藏表头。|
 |`visible_row_count`、`vertical_scrollbar_visible`、`horizontal_scrollbar_visible`|读取当前可见行数与滚动条状态。|
 |`on_item_list_changed`、`on_column_list_changed`、`on_column_width_changed`|视图内容及列宽变化。|
 |`on_selection_changed`、`on_row_double_click`、`on_column_click`|选择变化、激活行及点击表头。|
+|`on_row_height_changed`、`on_header_height_changed`|行高或表头高度变化，参数为`event_args`。|
 
 `item.cell_list`是`listview_cell_collection`。可以用`item.cell_list[0] = "Updated"`修改单元格，也可以整体赋值。列表按行对象保持选区，排序时将同一批行对象按新顺序赋回。
 
@@ -756,7 +846,7 @@ center的模态窗口使用直接父窗口；其它center窗口优先沿用SDK�
 
 `tree_node(text = "", expanded = False, tag = "")`提供同名读写属性。`parent`返回父节点或`None`，`node_list`管理子节点。通过`expand()`和`collapse()`调整展开状态。每个节点同时归属一个树集合。
 
-树视图提供`on_node_list_changed`、`on_selection_changed`、`on_node_expanded`、`on_node_collapsed`和`on_node_activated`。节点事件的数据字段`node`是节点标签。
+树视图提供`on_node_list_changed`、`on_selection_changed`、`on_node_expanded`、`on_node_collapsed`和`on_node_activated`。节点事件的数据字段为`event.node: tree_node | None`，读取标签可使用`event.node.tag`。
 
 ```python
 root = easyvrui.tree_node("Project", expanded = True, tag = "root")
@@ -796,11 +886,27 @@ fill填满矩形，contain保持比例完整显示，cover保持比例覆盖矩�
 |成员|用途|
 |---|---|
 |`screen_id: int = 0`|屏幕标识|
+|`accept_pointer: bool = False`|读写；允许激光操作当前显示器|
+|`accept_keyboard: bool = False`|读写；允许控件获取焦点并转发桌面键盘输入|
+|`enable_virtual_keyboard: bool = True`|读写；在虚拟键盘模式下启用layout|
+|`enable_ime: bool = False`|读写；在两种键盘模式下启用输入条、IME候选界面和IME路由|
 |`screen_available: bool`|只读，当前屏幕是否可用，初始False|
+|`capture_frame_rate: float`|只读，当前显示器产生新捕获画面的帧率|
+|`render_frame_rate: float`|只读，所属窗口成功提交的帧率|
 |`on_screen_id_changed`|屏幕选择变化。参数为`event_args`。|
-|`on_screen_unavailable/on_screen_restored`|屏幕不可用及恢复|
+|`on_accept_pointer_changed`|桌面指针操作开关变化。参数为`event_args`。|
+|`on_accept_keyboard_changed`|桌面键盘操作开关变化。参数为`event_args`。|
+|`on_enable_virtual_keyboard_changed`|虚拟键盘开关变化。参数为`event_args`。|
+|`on_enable_ime_changed`|IME开关变化。参数为`event_args`。|
+|`on_screen_unavailable/on_screen_restored`|屏幕不可用及恢复。参数为`event_args`。|
+|`on_capture_frame_rate_changed`|桌面捕获帧率变化。参数为`event_args`。|
+|`on_render_frame_rate_changed`|窗口渲染提交帧率变化。参数为`event_args`。|
 
-画面按控件矩形显示，鼠标指针随屏幕画面显示。原始画面清晰度与控件逻辑尺寸相关；需要逐像素显示时，将screen控件宽高设置为对应显示器分辨率。窗口的physical_scale独立控制其物理大小。
+两项帧率的单位均为FPS，初始为`0.0`，切换显示器或捕获不可用时归零。帧率变化事件的处理函数可以同时读取两个当前值。
+
+画面保持显示器纵横比并居中显示，剩余区域为黑边。`accept_pointer=True`时，画面区域内的激光移动、扳机按下与松开、拖拽和滚动会操作对应Windows显示器。`accept_keyboard=True`时，点击控件可获得焦点并按属性唤起输入区。两个输入组件开关均关闭时，控件仍可聚焦并接收实体键盘按键。聚焦期间修改开关时，SDK排空原路径并更新输入区。按键和IME提交转发给Windows前台应用。失焦、禁用、隐藏、关闭`accept_keyboard`或关闭窗口时，释放已转发的按键。
+
+服务托管时，Helper通过`inject_pointer`和`inject_keyboard`在活动输入桌面执行输入。Engine通过`screen_pointer_input`和`screen_keyboard_input`接收SDK请求。[Engine输入协议](/reference/engine_protocol)
 
 ### 4.15.图标工具栏与悬停提示
 
@@ -898,7 +1004,7 @@ window_main.menu = menubar_main
 |`set_column_width(column, value)`|调整列宽|
 |`begin_edit(row, column)`、`commit_edit()`、`commit_edit(value)`、`cancel_edit()`|编辑生命周期，begin/commit返回bool|
 
-writer和validator可返回`None`表示成功、bool表示结果、字符串表示失败原因，或`(bool, str)`同时给出结果与原因。数据提供器的写入需由writer更新实际数据源。派生类可覆盖`read_cell_value(row, column)`、`write_cell_value(row, column, value)`和`render_cell(context, cell)`；写入覆盖采用相同返回约定。
+writer和validator可返回`None`表示成功、bool表示结果、字符串表示失败原因，或`(bool, str)`同时给出结果与原因。数据提供器的写入需由writer更新实际数据源。派生类可覆盖`read_cell_value(row, column)`、`write_cell_value(row, column, value)`、`render_cell(context, cell)`、`get_cell_value_choice_list(row, column) -> list[str | int | float | bool] | None`及`get_row_icon(row) -> drawing_image | None`；写入覆盖可返回与writer相同的约定值，而调用基类`super().write_cell_value(row, column, value)`返回`tuple[bool, str]`。
 
 事件为`on_column_list_changed/on_column_width_changed/on_column_click/on_selection_changed/on_cell_double_click/on_cell_value_changed/on_row_height_changed/on_header_height_changed/on_edit_started/on_edit_committed/on_edit_cancelled/on_edit_failed`。事件使用与其它控件相同的`+=/-=`订阅方式。
 
@@ -908,11 +1014,15 @@ writer和validator可返回`None`表示成功、bool表示结果、字符串表�
 
 读取`column_list`得到快照，修改后需重新赋回。Grid单元格只读时用于选择和查看；可编辑单元格单击进入编辑，切换单元格协调焦点及输入界面。多选通过`multi_select`启用，Ctrl逐项切换、Shift扩展选择；实体键盘修饰键仅在实体捕获模式参与交互。
 
+### 4.18.file_address_bar
+
+`file_address_bar(name: str, editor: textbox)`继承`panel`，创建与配套`textbox`联动的目录地址栏（`editor`须非空，由调用方与地址栏放入同一父容器）。设置`rect`时自动同步`editor.rect`。`set_directory(path: str | os.PathLike)`同步编辑框文本并切换到面包屑层级显示；`start_editing()`切换为编辑框显示、聚焦并全选文本；`submit_address() -> bool`提交路径，导航回调返回`True`时退出编辑并切回层级显示，返回`False`时保留编辑状态。`configure_navigation(handler, root_text = "", root_reader = None)`设置导航回调（接收路径字符串并返回布尔值）、空路径根文字和可选的根目录路径序列回调`root_reader`。支持点击空白处、`Alt+D`、`Ctrl+L`进入编辑，`Enter`提交，`Escape`或失焦恢复层级显示。
+
 ## 5.集合接口
 
 ### 5.1.control_collection
 
-通过普通容器的`control_list`获得。集合保持顺序，并支持按不可变`name`查找；名称查找使用映射，通常接近常数时间。`control_collection(owner: container_control)`可构造与owner关联的独立集合，供派生类型扩展；owner原有的control_list入口仍指向其内置集合。
+通过普通容器的`control_list`获得。集合绑定所属容器，不支持复制构造或Python复制操作；需要副本时可用`list(collection)`取得对象引用快照。集合保持顺序，并支持按不可变`name`查找；名称查找使用映射，通常接近常数时间。`control_collection(owner: container_control)`可构造与owner关联的独立集合，供派生类型扩展；owner原有的control_list入口仍指向其内置集合。
 
 |签名或操作|返回值与用途|
 |---|---|
@@ -931,7 +1041,7 @@ writer和validator可返回`None`表示成功、bool表示结果、字符串表�
 
 读取和删除允许负下标，`-1`表示末尾。插入时负下标先加当前长度，再限制在`0`至长度之间；大于末尾的位置追加到最后。使用`collection[start:stop:step]`获取切片，`list(collection)`获取快照。移出与`dispose()`用途不同：移出后仍可保留并使用对象，满足条件时可加入其他容器。
 
-Python派生集合可覆盖`insert(self, index, item)`、`remove(self, index)`和`clear(self)`，原生虚调用会分发到对应Python方法；覆盖方法中可调用super的同名方法完成基类操作。Python接入的`append/extend/pop`和负下标是集合使用适配。
+Python派生集合可覆盖`insert(self, index, item)`、`remove(self, index)`和`clear(self)`，并可访问受保护的`get_owner()`、`release_control_list()`及增删通知钩子`notify_control_added(item, index)`、`notify_control_removed(item, index, clearing)`；原生虚调用会分发到对应Python方法，覆盖方法中可调用super的同名方法完成基类操作。Python接入的`append/extend/pop`和负下标是集合使用适配。
 
 集合视图保留所属owner的Python引用，查询得到的借用引用按绑定维护其依赖关系。Python派生控件由原生集合持有时，其重载方法和实例属性保持有效。owner、集合及Python附加属性形成的引用环参与GC；移出的共享对象可独立持有，`dispose()`用于显式结束原生对象及其资源。
 
@@ -944,8 +1054,8 @@ Python派生集合可覆盖`insert(self, index, item)`、`remove(self, index)`�
 |`add(page: tabpage)`、`append(page: tabpage)`|追加并返回页面|
 |`insert(index: int, page: tabpage)`|返回页面，在指定位置插入|
 |`extend(page_list: Iterable[tabpage], /) -> None`|依次追加各页面|
-|`remove(key: str \| int \| tabpage, /) -> control`|移出并返回页面|
-|`remove_at(index: int)`、`pop(index: int = -1) -> control`|移出并返回指定页面|
+|`remove(key: str \| int \| tabpage, /) -> tabpage`|移出并返回原页面实例（底层共享`control`指针）|
+|`remove_at(index: int)`、`pop(index: int = -1) -> tabpage`|移出并返回指定页面实例|
 |`clear() -> None`|清空全部页面|
 |`collection[key] -> tabpage`、`del collection[key]`|查询或移出页面|
 |`index_of(key: str \| int \| tabpage, /) -> int`|页面下标|
@@ -988,6 +1098,8 @@ Python派生集合可覆盖`insert(self, index, item)`、`remove(self, index)`�
 
 菜单使用与普通容器相同的`control_collection`，支持按名称或索引查找，以及`add/insert/remove/clear`。多级菜单由菜单项嵌套组成。`separator = True`显示分隔线；`checkable/checked`控制勾选；`shortcut`记录快捷键，`&A`或`(&A)`表示助记键。
 
+按住`Alt`或进入菜单键盘导航时显示助记符下划线。单独按下再松开`Alt`可切换键盘导航。`Alt+Shift`切换输入语言时保留文本编辑焦点。
+
 ## 6.强类型事件
 
 ### 6.1.订阅方式与event_container
@@ -1017,7 +1129,9 @@ button_ok.on_click -= button_ok_click
 
 ### 6.2.事件参数
 
-参数类可从`easyvrui`或`easyvrui.event`导入。下表中`event_args`为空基类，其余18种参数类均继承它。例如`issubclass(cancel_event_args, event_args)`为`True`。回调期间设置相应参数的`event.cancel`或`event.handled`，原生分派会读取回写的状态。集合及树节点参数提供可读取的对象引用，索引从0开始。
+参数类可从`easyvrui`或`easyvrui.event`导入。回调期间将`event.cancel`或`event.handled`设为`True`即可取消相应操作或消费输入。集合及树节点参数提供可读取的对象引用，索引从0开始。
+
+下表中19个带字段的事件参数类均继承`event_args`，例如`issubclass(cancel_event_args, event_args)`返回`True`。
 
 |参数类型|字段|用途|
 |---|---|---|
@@ -1039,6 +1153,7 @@ button_ok.on_click -= button_ok_click
 |`tree_node_event_args`|`node: tree_node &#124; None`|操作的树节点。取消选择时`node`为空。|
 |`render_error_event_args`|`message: str`|渲染异常的消息。|
 |`controller_event_args`|`hand: str`、`trigger: bool`、`grip: bool`、`joystick_x: int`、`joystick_y: int`、`joystick_pressed: bool`、`primary: bool`、`secondary: bool`|手柄按键和摇杆状态。摇杆轴范围为0至255，`primary`为左手X或右手A，`secondary`为左手Y或右手B。|
+|`global_pointer_event_args_t`|`hand: str = ""`、`button: str = ""`、`timestamp_ms: int = 0`|全局手柄按键边沿，支持默认构造`global_pointer_event_args_t()`及字段读写。`hand`为`left`或`right`，`button`为`trigger`、`grip`、`joystick`（摇杆按键按压）、`primary`（左手X或右手A）或`secondary`（左手Y或右手B），`timestamp_ms`为Unix毫秒时间戳。|
 |`control_input_event_args`|`type: control_input_type`、`hand: str`、`key: str`、`text: str`、`left: float`、`top: float`、`x: float`、`y: float`、`steps: int`、`horizontal: bool`、`shift: bool`、`ctrl: bool`、`alt: bool`、`meta: bool`、`captured: bool`、`cancelled: bool`、`handled: bool`、`has_position: bool`、`has_local_position: bool`|派生控件的输入分派参数。通过`type`区分输入，按类型读取字段，设置`handled`可标记已消费。|
 
 `control_input_type`的取值为`none`、`click`、`focus_in`、`focus_out`、`pointer_enter`、`pointer_leave`、`pointer_move`、`pointer_down`、`pointer_up`、`scroll`、`key_down`、`key_up`、`text_input`、`controller_input`。
@@ -1077,9 +1192,10 @@ button_ok.on_click -= button_ok_click
 |`fill_rounded_rectangle(rectangle, radius_x: float, radius_y: float, color: int) -> None`|填充圆角矩形|
 |`outline_rounded_rectangle(rectangle, radius_x: float, radius_y: float, color: int, thickness: float = 1.0) -> None`|绘制圆角矩形边框|
 |`draw_text(value: str, font: font, rectangle, color: int, center: bool = False) -> None`|绘制文字，`center=True`居中|
+|`draw_rich_text(value, font, rectangle, color, multiline=False, horizontal_alignment=horizontal_alignment.left, vertical_alignment=vertical_alignment.center)`|用给定的默认字体、默认前景色和对齐方式绘制一组`rich_text`片段|
 |`measure(text: str, font: font) -> float`|测量文字宽度|
 |`draw_image(image: drawing_image, rectangle, opacity: float = 1.0) -> None`|将图像绘制到目标矩形|
-|`draw_screen(screen_id: int, rectangle) -> None`|绘制指定显示器的实时画面|
+|`draw_screen(screen_id: int, rectangle, accept_pointer: bool = False) -> None`|绘制指定显示器的实时画面。`accept_pointer`启用画面上的激光光标|
 |`fill_path(path: drawing_path, color: int) -> None`|填充路径|
 |`outline_path(path: drawing_path, color: int, thickness: float = 1.0) -> None`|绘制路径轮廓|
 |`push_clip(rectangle) -> None`|压入裁剪矩形；与已有裁剪共同限制后续绘图|
@@ -1140,6 +1256,7 @@ button_ok.on_click -= button_ok_click
 |`load_file(path: str) -> drawing_image`|静态方法，加载系统支持的图像文件，ICO选取最大图像帧|
 |`load_memory(data: bytes) -> drawing_image`|静态方法，从完整编码图像字节加载|
 |`load_ico(data: bytes) -> drawing_image`|静态方法，检查ICO文件头并从内存加载图标|
+|`get_administrator_shield() -> drawing_image \| None`|静态方法，取得系统管理员盾牌图像；系统图标资源缺失时返回`None`|
 |`encode_ico() -> bytes`|保留RGBA像素，无损生成PNG单图ICO；宽高各为1～256像素|
 
 ### 7.4.派生控件的扩展点
@@ -1154,6 +1271,8 @@ button_ok.on_click -= button_ok_click
 |`get_content_top(self) -> float`|定义内容顶部偏移|
 |`get_input_rectangle(self) -> rect`|返回控件本地输入区域|
 |`process_input(self, event)`|处理输入，按对应事件规则设置`event.handled`；调用`super().process_input(event)`保留基类处理|
+
+普通派生控件可以订阅受保护的`self.on_controller_input`（原生基类普通实例隐藏该成员）。事件仅在初始状态或按键/摇杆状态变化时派发给可交互的指针捕获目标或激光命中控件/窗口，回调接收`controller_event_args`，包含手别、扳机、握把、摇杆和按钮状态。
 
 容器派生类还有三个布局钩子，由原生框架调用：
 
@@ -1193,21 +1312,20 @@ class meter_control(control):
 |---|---|
 |`run(application_name: str) -> None`|以`application_name`为会话名称运行普通窗口应用循环；没有已加载且未关闭的窗口，或运行环境停止时返回|
 |`set_application_name(application_name: str) -> None`|登记会话名称，必填且为非空字符串；`run(application_name)`已包含这一步，独立主循环在首次`pump()`之前调用|
-|`pump(timeout_millisecond: int = 0) -> bool`|分派消息和回调，推进定时状态，提交待更新窗口。可按参数等待指定毫秒，循环仍可继续时返回`True`|
+|`pump(timeout_millisecond: int = 0) -> bool`|立即提交更新、分派消息和回调；必要时等待指定毫秒，仍有可运行窗口时返回True|
 |`show_input_ui(window: window, rectangle: rect \| Sequence[int], completion = None) -> None`|为关联窗口开启输入界面；矩形顺序为`left, top, width, height`|
 |`hide_input_ui(completion = None) -> None`|请求收起当前输入界面，完成排空后结束旧输入路径|
 |`get_application_directory() -> pathlib.Path`|定位应用资源目录。|
+|`get_preferred_ui_language() -> str`|读取首选界面语言代码。|
 |`measure_text(text: str, font: font) -> float`|按指定字体测量文本宽度，单位为逻辑像素。|
-
-应用循环在UI线程执行事件、异步完成通知和本地投递的回调。原生连接分别保存服务端事件与异步响应，消息泵按收包顺序合并两队列。内部同步请求只等待自己的响应，期间到达的事件由后续消息循环处理。实现见[IPC、TLS与连接队列](/advanced/03_ipc_tls_protocol)。
 
 会话名称标识引擎应用列表中的本程序，也是窗口归属的跟踪依据。名称必填且为非空字符串；连接建立后名称固定，再次传入不同的名称会抛出异常。未显式命名时，SDK使用可执行文件名作为会话名称。
 
-输入矩形使用窗口逻辑坐标，表示文本编辑区域。关联窗口须为当前可交互的普通应用窗口；layout/IME会话及辅助窗口不能开启应用输入区。`completion`为`Callable[[bool], None]`或`None`，接收操作是否成功；请求发出后继续运行应用循环处理完成通知。已显示的窗口即使隐藏也仍可使`run(application_name)`继续运行；应用结束时关闭窗口。
+输入矩形使用窗口逻辑坐标，表示文本编辑区域。关联窗口须为当前可交互的普通应用窗口；layout/IME会话及辅助窗口不能开启应用输入区。`completion`为`Callable[[bool], None]`或`None`，接收操作是否成功；请求发出后继续运行应用循环处理完成通知。已加载且未关闭的窗口（包括调用`show_hidden()`初始化的隐藏窗口及显示后隐藏的窗口）均会保持`run(application_name)`继续运行；应用结束时关闭窗口。
 
-可编辑文本控件的焦点变化会由控件框架协调输入界面；应用需要自定义输入区域时使用上述函数。引擎按当前窗口路由键盘，窗口内部焦点由控件框架分发。`Pause`切换物理键盘拦截模式，只有编辑区需要显示虚拟键盘和IME界面。
+可编辑文本控件的焦点变化会由控件框架协调输入界面；应用需要自定义输入区域时使用上述函数。引擎按当前窗口路由键盘，窗口内部焦点由控件框架分发。`Pause`切换实体键盘拦截模式。可编辑文本控件聚焦时启用虚拟键盘和IME，`screen`按自身属性启用输入组件。
 
-激活编辑控件后，输入区下方的辅助输入条显示语言、IME名称和“输入法切换”按钮。点击按钮后先收起输入界面，再打开模态选择对话框：layout列表独立选择，语言列表用于过滤IME列表。对话框保留各语言的暂选，点击“确定”应用选择，也可将选中的IME设为默认项。取消会放弃暂选，关闭后返回原编辑控件。实体键盘模式且存在有效当前窗口时，`Alt+Shift`切换语言并恢复该语言上次使用的IME，`Ctrl+Shift`在当前语言内切换IME。
+聚焦启用了IME的控件后，辅助输入条显示语言、IME名称和“输入法切换”按钮。点击按钮后先收起输入界面，再打开模态选择对话框：layout列表独立选择，语言列表用于过滤IME列表。对话框保留各语言的暂选，点击“确定”应用选择，也可将选中的IME设为默认项。取消会放弃暂选，关闭后返回原焦点控件。实体键盘模式且存在有效当前窗口时，`Alt+Shift`切换语言并恢复该语言上次使用的IME，`Ctrl+Shift`在当前语言内切换IME。
 
 窗口显示期间，SDK将本进程的Ctrl+C作为界面快捷键处理。最后一个显示窗口关闭后恢复控制台处理。Ctrl+Break沿用控制台行为。
 
@@ -1228,16 +1346,26 @@ class meter_control(control):
 python my_vr_app.py --easyvrui-host=192.0.2.10 --easyvrui-port=49537 --easyvrui-access-credential="my credential" --easyvrui-public-key-fingerprint=0000000000000000000000000000000000000000000000000000000000000000
 ```
 
-连接与证书验证失败通过异常报告。应用层使用窗口、绘图及输入接口即可；完整消息字段定义见[Engine协议参考](./engine_protocol)。
+连接与证书验证失败通过异常报告。应用层使用窗口、绘图及输入接口即可；完整消息字段定义见`repo/docs/engine.md`。
 
-### 8.3.应用列表与结束
+### 8.3.应用清单与会话管理
 
-可从`easyvrui`或`easyvrui.application_management`导入应用管理接口。清单读取与进程启动在调用进程所在机器上完成，因此应用与Engine可以位于不同机器。单实例由应用自身实现。应用管理快照包含经验证的引擎本机会话及其窗口，包含Desktop，过滤输入组件。查询和结束操作要求经验证的引擎本机会话，Desktop和输入组件受结束操作保护。
+可从`easyvrui`或`easyvrui.application_management`导入以下接口。清单读取和应用启动在调用进程所在机器上完成。单实例由应用自身实现。经验证的引擎本机会话可以查询普通应用与Desktop的窗口快照，并管理普通应用会话及其窗口。
 
 |签名|用途|
 |---|---|
-|`read_application_entry(manifest_path: str \| Path, language: str = "") -> application_entry`|读取清单并按指定语言选择名称。语言为空时采用系统语言，最终回退到`en`|
-|`launch_application(manifest_path: str, extra_argument_list: Sequence[str] \| None = None) -> int`|读取`.easyvrui`清单并在本机启动该应用，返回新进程PID；`extra_argument_list`追加到清单声明的参数之后。清单缺失或启动失败抛出异常|
+|`read_application_entry(manifest_path: str \| Path, language: str = "") -> application_entry`|读取清单，按指定语言选择名称。语言为空时采用系统语言，缺失匹配项时回退`en`|
+|`launch_application(manifest_path: str \| os.PathLike, extra_argument_list: Iterable[str] \| None = None, run_as_administrator: bool = False) -> int`|按清单启动本机进程并返回PID，工作目录为清单所在目录。管理员要求取参数与清单字段的逻辑或：普通权限进程请求管理员目标抛出`engine_error`（`error_key.administrator_privilege_required`），管理员进程启动普通目标使用普通令牌。额外参数追加到清单参数之后，未指定远程选项时自动继承启动者的远程连接参数。|
+|`get_is_administrator() -> bool`|返回当前进程令牌完整性级别是否至少为High（管理员权限）。|
+|`open_system_path(path: str \| os.PathLike, run_as_administrator: bool = False) -> None`|用Windows Shell打开路径，显式管理员参数与目标文件声明的权限取逻辑或；普通权限进程请求管理员目标抛出`error_key.administrator_privilege_required`，管理员进程打开普通目标使用普通Shell令牌。|
+|`get_system_path_requires_administrator(path: str \| os.PathLike) -> bool`|读取清单权限、PE内嵌`requireAdministrator`或快捷方式中的管理员标志及目标属性。|
+|`get_file_icon(path: str \| os.PathLike, size: int = 48, include_administrator_badge: bool = True) -> drawing_image \| None`|按1至256像素返回正方形图标（越界抛出`error_key.invalid_drawing_image`）。清单图标等比居中，普通文件使用Shell图标；清单或Shell图标加载失败时返回`None`。|
+|`get_default_file_icon(directory: bool, drive: bool, size: int, administrator_badge: bool = False) -> drawing_image \| None`|取得文件、目录或驱动器的默认图标（加载失败返回`None`，`size`越界抛出`error_key.invalid_drawing_image`）。|
+|`get_file_icon_badge(path: str \| os.PathLike) -> bool`|查询路径的图标是否需要管理员徽标|
+|`get_has_individual_file_icon(path: str \| os.PathLike) -> bool`|查询路径是否具有独立图标|
+|`get_system_file_icon(index: int, size: int, administrator_badge: bool = False) -> drawing_image \| None`|按Shell图标索引取得系统图标（加载失败返回`None`，`size`越界抛出`error_key.invalid_drawing_image`）。|
+|`get_system_file_info(path: str \| os.PathLike, directory: bool, size: int) -> system_file_info`|返回文件类型信息`system_file_info`，包含只读的`type_name: str`和`icon: drawing_image \| None`。|
+|`refresh_system_icon_cache() -> None`|刷新SDK的系统图标缓存|
 |`get_application_snapshot_list() -> list[application_snapshot]`|查询引擎返回的会话快照列表|
 |`terminate_application(session_id: int) -> bool`|结束目标会话对应的进程，返回引擎给出的操作结果|
 |`close_application_window(session_id: int, window_id: int) -> bool`|请求目标会话正常关闭指定窗口，返回事件是否送达|
@@ -1249,16 +1377,17 @@ python my_vr_app.py --easyvrui-host=192.0.2.10 --easyvrui-port=49537 --easyvrui-
 
 #### `application_entry`
 
-`read_application_entry()`会填充以下读写属性。路径以清单所在目录为基准。字段规则见[应用清单](./application_manifest)。
+`application_entry()`创建记录。`read_application_entry()`读取清单并填充以下读写属性，路径以清单所在目录为基准。字段定义参见[应用清单](/reference/application_manifest)。
 
 |属性|用途|
 |---|---|
-|`id: str`、`name: str`|应用ID和完成语言匹配后的显示名称|
+|`id: str`、`name: str`|应用标识和已经匹配语言的显示名称|
 |`icon_path: Path \| None`、`icon_data: bytes`|外部图标路径和内嵌图标的文件字节|
-|`runtime: application_runtime`|默认`native`，表示启动原生程序。`python`表示启动Python主脚本|
-|`executable: Path \| None`、`script: Path \| None`|解析后的原生程序路径或Python脚本路径|
+|`runtime: application_runtime`|`native`启动本机程序，`python`启动Python主脚本。默认`native`|
+|`executable: Path \| None`、`script: Path \| None`|解析后的原生程序路径与Python脚本路径|
 |`argument_list: list[str]`|清单声明的启动参数|
-|`type: application_type`|取值为`application`、`desktop`、`layout`或`ime`，默认`application`|
+|`run_as_administrator: bool = False`|清单声明的是否要求管理员权限启动，默认`False`|
+|`type: application_type`|应用类型，取值为`application`、`desktop`、`layout`或`ime`，默认`application`|
 
 #### `application_snapshot`
 
@@ -1289,17 +1418,19 @@ python my_vr_app.py --easyvrui-host=192.0.2.10 --easyvrui-port=49537 --easyvrui-
 
 ## 9.标准对话框
 
-从`easyvrui`或`easyvrui.dialog`导入下列函数。调用等待用户完成并返回结果，等待期间持续处理界面活动。owner是直接父窗口；模态期间禁用该父窗口。对话框继承其physical_scale，采用World与center定位。
+从`easyvrui`或`easyvrui.dialog`导入下列函数。调用等待用户完成并返回结果，等待期间持续处理界面活动。`owner`是直接父窗口，模态期间禁用该父窗口。省略`owner`时，SDK按当前分发窗口、加载中窗口、活动窗口及最近可交互普通窗口的顺序解析默认父窗口（若目标正被模态对话框阻挡，则自动转到其最内层阻挡对话框）；无候选时以无父窗口方式显示。传入无效或辅助表面`owner`抛出`error_key.invalid_dialog_owner`，在layout/IME会话中调用同步标准对话框抛出`error_key.invalid_input_provider_role`，在绘制或窗口提交阶段等待模态对话框抛出`error_key.operation_failed`（`dialog_wait_during_render`）。对话框继承父窗口的`physical_scale`，采用World与center定位。
 
 |签名|返回值|
 |---|---|
-|`color_dialog(color: int = 0x000000ff, title: str = "", default_color: int = 0x000000ff, owner: window \| None = None) -> int \| None`|确定返回`0xRRGGBBAA`，取消返回None|
-|`font_dialog(font: font = font(), title: str = "", default_font: font = font(), owner: window \| None = None) -> font \| None`|确定返回系统字体，取消返回None|
+|`color_dialog(color: int \| color = 0x000000ff, title: str = "", default_color: int \| color = 0x000000ff, owner: window \| None = None) -> int \| None`|颜色参数接受`0xRRGGBBAA`整数或`color`对象；确定返回`0xRRGGBBAA`整数，取消返回`None`|
+|`font_dialog(font: font = font(), title: str = "", default_font: font = font(), owner: window \| None = None) -> font \| None`|确定返回系统字体，取消返回`None`|
 |`messagebox(message: str, title: str = "", button_set = messagebox_button_set.ok, icon = messagebox_icon.none, default_button = dialog_result.none, owner: window \| None = None) -> dialog_result`|选中的标准按钮|
-|`messagebox(message: str, title: str, button_list: list[messagebox_button], icon = messagebox_icon.none, default_button_name: str = "", owner: window \| None = None) -> str`|选中按钮的name|
-|`inputbox(prompt: str, title: str = "", default_text: str = "", max_length: int = 0, owner: window \| None = None) -> str \| None`|确定返回文字，取消返回None；空字符串和文字cancel都是有效输入|
+|`messagebox(message: str, title: str, button_list: list[messagebox_button], icon = messagebox_icon.none, default_button_name: str = "", owner: window \| None = None) -> str`|选中按钮的`name`，直接关闭返回空字符串；`button_list`须非空、按钮`name`与`text`非空且`name`唯一、`default_button_name`为空或在列表内（否则抛`error_key.property_type_mismatch`），为空时聚焦首个按钮|
+|`inputbox(prompt: str, title: str = "", default_text: str = "", max_length: int = 0, owner: window \| None = None) -> str \| None`|确定返回文字，取消返回`None`；`max_length=0`表示不限长，空字符串和文字`cancel`均为有效输入|
 
-`messagebox_button(name = "", text = "")`保存按钮标识与显示文字。消息框枚举成员及数值与C++一致：
+`messagebox_button(name = "", text = "")`保存按钮标识与显示文字。
+
+`show_messagebox(message: str, title: str, icon: messagebox_icon, owner: window) -> None`异步显示仅带确定按钮的通知框并立即返回，`owner`必填；消息为空或`owner`已关闭/释放时直接返回，若该`owner`已有同类通知框则更新内容。当`owner`暂时隐藏时，消息框在该窗口显示时打开。
 
 |枚举|成员|
 |---|---|
@@ -1307,16 +1438,20 @@ python my_vr_app.py --easyvrui-host=192.0.2.10 --easyvrui-port=49537 --easyvrui-
 |`messagebox_button_set`|`ok=0`、`ok_cancel=1`、`abort_retry_ignore=2`、`yes_no_cancel=3`、`yes_no=4`、`retry_cancel=5`|
 |`dialog_result`|`none=0`、`ok=1`、`cancel=2`、`abort=3`、`retry=4`、`ignore=5`、`yes=6`、`no=7`|
 
+`inputbox`显示后自动聚焦文本框并选中预填内容。
+
 ### 9.1.文件对话框
+
+打开和保存对话框显示后自动聚焦文件名输入框，并选中预填文件名的主名。
 
 ```python
 file_open_dialog(title = "", initial_directory = None, initial_filename = "", filter_list = [], filter_index = 0, multi_select = False, confirm_text = "", owner = None, directory_changed = None, filter_changed = None)
 file_save_dialog(title = "", initial_directory = None, initial_filename = "", filter_list = [], filter_index = 0, default_extension = "", confirm_overwrite = True, confirm_text = "", owner = None, directory_changed = None, filter_changed = None)
 ```
 
-打开返回`list[pathlib.Path]`，取消返回空列表。保存返回`pathlib.Path`，取消返回`None`。`initial_directory=None`使用记忆目录。`directory_changed`接收路径，`filter_changed`接收从0开始的筛选索引。两个回调接收初始值和后续变化。
+打开返回`list[pathlib.Path]`，取消返回空列表。保存返回`pathlib.Path`（文件由调用方写入），取消返回`None`。打开与保存共享进程内成功记忆目录：`initial_directory=None`时使用记忆目录，无有效记忆时使用进程当前工作目录；提供不可用目录时弹出提示并保留当前目录。`directory_changed`接收路径，`filter_changed`接收从0开始的筛选索引，两者在显示前同步收到初始值，后续在UI线程收到变更。
 
-`file_filter(name, pattern_list)`定义筛选名称与文件模式。`confirm_text`为空时使用本地化按钮文字。保存时可通过`default_extension`补全扩展名，通过`confirm_overwrite`控制覆盖确认。
+`file_filter(name: str = "", pattern_list: list[str] = [])`支持无参默认构造；提交给对话框时每项`name`与`pattern_list`须非空，模式为文件名通配符（支持`*`和`?`，不允许含`/`、`\`或`:`，否则抛`error_key.candidate_string_sequence`），`filter_index`须在实际筛选表范围内（越界抛`error_key.selected_item_index_out_of_range`）。`confirm_text`为空时使用本地化按钮文字。保存时若文件名已带扩展名则沿用原扩展名，否则按显式`default_extension`（可带前导`.`，非法扩展名抛`error_key.candidate_string_sequence`）或当前筛选首项具体`*.ext`推导；`confirm_overwrite=True`时仅对已存在的常规文件弹出覆盖确认。
 
 ```python
 import easyvrui
@@ -1326,12 +1461,12 @@ path = easyvrui.file_save_dialog(title = "保存", initial_filename = "window1",
 
 ### 9.2.language_pack
 
-`language_pack.current`取得SDK当前语言包。内置文字随SDK编入Python原生扩展，默认按系统语言选择。`language_pack.load_directory(path)`可显式从指定目录加载自定义语言包。该目录以`en.json`提供基础文字，其它文件按语言代码命名。
+`language_pack.current`读取编入原生扩展的SDK语言包，默认根据系统语言选择。`language_pack.load_directory(path)`从指定目录加载独立语言包。目录使用`en.json`提供基础文字，其它语言文件以语言代码命名。
 
 |属性或操作|用途|
 |---|---|
 |`locale: str`|读取或设置当前语言代码|
-|`available_locale_list: list[str]`|当前语言包提供的语言代码|
+|`available_locale_list: list[str]`|语言包目录中的语言代码|
 |`key_list: list[str]`|`locale`下可查询的语言键|
 |`len(pack)`、`key in pack`|语言键数量及成员查询|
 |`pack[key]`|读取文字，缺失键抛出`KeyError`|
@@ -1421,14 +1556,14 @@ IME的language用于语言分组，layout的协议记录省略该字段。Python
 |`process_input(event: input_event, /) -> None`|可覆盖；处理IME收到的键盘输入|
 |`process_drain() -> None`|可覆盖；完成排空所需的应用工作|
 
-注册后的会话固定为layout或IME角色；组件窗口由框架和Engine标记为辅助表面，Engine按关联输入区自动定位并继承缩放，设置的`reference_object`由Engine忽略。这些窗口用于键盘、候选或提示界面。普通应用通过`show_input_ui()`开启输入区。
+注册后的会话固定为layout或IME角色；组件窗口由框架和Engine标记为辅助表面，其参考对象、位置和缩放由Engine根据关联输入区自动设置。这些窗口用于键盘、候选或提示界面。普通应用通过`show_input_ui()`开启输入区。
 
 输入状态回调先执行`process_state()`，再触发`on_state_changed`。IME按键先执行`process_input()`，再触发`on_input`；最终`handled=False`时按键会继续转发到应用，`handled=True`时由IME消费。提交文本用`commit_text()`。layout发送按键给IME，再由IME处理或转发。IME候选和组合状态由IME应用自行维护。
 
 |事件|回调签名与用途|
 |---|---|
-|`on_state_changed`|`callback(state: input_ui_state) -> None`，输入路径状态变化|
-|`on_input`|`callback(event: input_event) -> None`，IME收到按键；可修改`handled`|
+|`on_state_changed`|`callback(source: input_provider, state: input_ui_state) -> None`，输入路径状态变化（与单参数覆盖方法`process_state(state)`区分）|
+|`on_input`|`callback(source: input_provider, event: input_event) -> None`，IME收到按键，可修改`handled`（与单参数覆盖方法`process_input(event)`区分）|
 
 停用、切换和收起输入界面时，组件收到排空通知。异步任务应提前用`begin_input_task()`登记，输出提交后用`finish_input_task()`完成；排空期间等待旧任务和待发结果完成，之后由组件接口完成确认。`process_drain()`适合结束自己的缓冲工作。未注册、未激活或已完成排空确认后的发送不会进入有效输入路径。
 
@@ -1455,8 +1590,9 @@ ime_english.run()
 |`get_error_language() -> str`|读取当前错误提示语言|
 |`select_error_language(language: str, /) -> None`|切换提示语言，支持`zh/en/ja`|
 |`get_localized_error(key: str, *argument_list) -> str`|按语言键取得提示文字，并将格式参数转换为字符串|
+|`get_language_key(key: error_key \| language_key, /) -> str`|将`error_key`或`language_key`枚举转换为对应语言键字符串|
 
-这三个函数均可从`easyvrui`或`easyvrui.common.error`导入。初始语言根据系统首选语言选择。
+完整错误键定义见[C++ API错误键表](/reference/cpp_api#error_key_t)（包括权限校验`administrator_privilege_required`、图标尺寸`invalid_drawing_image`、日期时间与自定义消息框`property_type_mismatch`、筛选与扩展名`candidate_string_sequence`及对话框父窗口`invalid_dialog_owner`等）。前三个函数均可从`easyvrui`或`easyvrui.common.error`导入，`get_language_key`位于顶层`easyvrui`。初始语言根据系统首选语言选择。
 
 |类型或函数|用途|
 |---|---|
@@ -1467,6 +1603,7 @@ ime_english.run()
 |`localized_runtime_error(key: language_key, argument_list = [], location = None, expression = "")`|本地化运行错误，继承`RuntimeError`。只读`key`是`language_key`枚举值|
 |`get_error_diagnostic(error: BaseException) -> error_diagnostic`|读取异常携带的诊断，普通异常使用调用位置生成诊断|
 |`get_error_message(error: BaseException) -> str`|读取或生成带诊断信息的单行异常文本|
+|`get_user_error_message(error: BaseException) -> str`|按已知错误键获取适合界面展示的本地化提示，未知异常返回通用提示|
 
 `error_diagnostic`和上述四种异常都提供`get_message(key = "", detail = "")`，用于根据现有来源、给定的错误键和说明格式化单行诊断。它们共享以下只读属性。
 
@@ -1512,6 +1649,7 @@ ime_english.run()
 |`textbox`|`can_undo`、`can_redo`|只读|
 |`combobox`|`dropdown_style`、`dropped_down`|读写|
 |`combobox`|`text`|读写|
+|`datetime_selector`|`datetime`|读写|
 |`tabcontrol`|`selected_index`|读写|
 |`tabcontrol`|`tab_position`|读写|
 |`tabcontrol`|`tab_size`|读写|
@@ -1533,10 +1671,13 @@ ime_english.run()
 |`window`|`rotation`|读写|
 |`window`|`reference_object`|读写|
 |`window`|`show_title_bar`|读写|
+|`window`|`show_border`|读写|
+|`window`|`rotatable`|读写|
 |`window`|`tracking_mode_set`|读写|
 |`window`|`show_close_button`|读写|
 |`window`|`movable`|读写|
 |`window`|`resizable`|读写|
+|`window`|`scalable`|读写|
 |`checkbox`|`checked`|读写|
 |`radiobutton`|`checked`|读写|
 |`numericupdown`|`value`|读写|
@@ -1558,6 +1699,13 @@ ime_english.run()
 |`splitter`|`orientation`|读写|
 |`splitter`|`split_position`|读写|
 |`screen`|`screen_id`|读写|
+|`screen`|`accept_pointer`|读写|
+|`screen`|`accept_keyboard`|读写|
+|`screen`|`enable_virtual_keyboard`|读写|
+|`screen`|`enable_ime`|读写|
+|`screen`|`screen_available`|只读|
+|`screen`|`capture_frame_rate`|只读|
+|`screen`|`render_frame_rate`|只读|
 |`grid`|`selection_mode`|读写|
 |`grid`|`multi_select`|读写|
 |`grid`|`row_height`|读写|
@@ -1584,6 +1732,9 @@ ime_english.run()
 |`image`|`source`|读写|
 |`listview`|`column_list`|读写|
 |`listview`|`item_list`|读写|
+|`listview`|`row_height`、`header_height`|读写|
+|`listview`|`selected_index`、`selected_item`、`multi_select`|读写|
+|`listview`|`selected_item_list`、`visible_row_count`、`vertical_scrollbar_visible`、`horizontal_scrollbar_visible`|只读|
 |`grid`|`column_list`|读写|
 
 ## 13.Python运算符协议索引

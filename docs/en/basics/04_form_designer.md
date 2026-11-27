@@ -12,13 +12,13 @@ After starting SteamVR and Engine, open Form Designer from Desktop, or run `D:\T
 
 1. **Top `menubar` and `toolbar`**:
    - **File / View / Layout / Run / Export**: Supports creating/opening `.easyvruifrm` design files, grid snapping, canvas zooming, alignment/equal width and level adjustment, **starting or stopping VR real-time preview**, and **exporting Python / C++**.
-2. **Left Control Panel (Toolbox) and Object Tree (Object Tree)**:
-   - **Control Panel**: Provides all built-in controls such as `label`, `button`, `textbox`, `combobox`, `listbox`, `listview`, `grid`, `checkbox`, `radiobutton`, `numericupdown`, `slider`, `progressbar`, `panel`, `scrollpanel`, `tabcontrol`, `treeview`, `image`, `screen`, `splitter`, `menubar`.
-   - **Object Tree**: Displays a complete parent-child hierarchy. When controls overlap, you can directly select the target control in the object tree.
+2. **Left Control Panel (Toolbox) and Object Tree**:
+   - **Toolbox**: Provides registered built-in controls including `label`, `rich_label`, `button`, `textbox`, `combobox`, `datetime_selector`, `listbox`, `listview`, `grid`, `checkbox`, `radiobutton`, `numericupdown`, `slider`, `progressbar`, `panel`, `scrollpanel`, `tabcontrol`, `treeview`, `image`, `screen`, `splitter`, `menubar`, `toolbar`, and `blank`.
+   - **Object Tree**: Displays the complete parent-child hierarchy so overlapping controls can be selected directly.
 3. **Middle Design Canvas**:
-   - It is the visual editing area corresponding to the VR window. It supports grid snapping, multiple selections by box selection, dragging to adjust size, and undo/redo (`Ctrl+Z` / `Ctrl+Y`).
+   - Visual editing area for the VR window supporting grid snapping, marquee selection, resize dragging, and undo/redo (`Ctrl+Z` / `Ctrl+Y`). Clicking `tabcontrol` tabs on the canvas switches the design-time view independently of the persisted `selected_index` property.
 4. **Right Property Bar**:
-   - `name` is fixed at the top, and the remaining properties are arranged in alphabetical order. You can directly modify text, color, font, curvature, `tooltip_text`, and `tag` properties.
+   - `name` is pinned at the top and remaining properties are sorted alphabetically. Editing `datetime_selector.datetime` opens a dialog embedding the native `datetime_selector` control itself (saving `YYYY-MM-DD HH:MM:SS` or `null` in `.easyvruifrm`). During live preview, the property bar displays read-only runtime properties with lock/snapshot and apply-to-design actions. Form Designer also watches opened files for external changes or deletion and prompts before reload or overwrite.
 
 ---
 
@@ -73,9 +73,9 @@ After confirming that `easyvrui_engine.exe` is running, click **Run → Start** 
 
 ## Code export and business logic
 
-After the interface design is completed, click on the menu **Export → Export Python**or**Export → Export C++**:
-- Exporting Python will generate `quick_shout_window.py` in the same directory as `.easyvruifrm`;
-- Exporting C++ will generate both `quick_shout_window.h` and `quick_shout_window.cpp` in the same directory, and all controls will be initialized in the constructor.
+After the interface design is completed, click **Export → Export Python** or **Export → Export C++**:
+- Exporting Python generates `<form_name>_ui.py` (e.g. `quick_shout_window_ui.py` with layout class `quick_shout_window_ui`) in the same directory as `.easyvruifrm`;
+- Exporting C++ generates `<form_name>_ui.h` and `<form_name>_ui.cpp` (e.g. `quick_shout_window_ui.h/.cpp` with class `quick_shout_window_ui`), initializing all controls in the constructor.
 
 ### Implement events in the application code
 
@@ -120,10 +120,10 @@ The greatest advantage of using the composite pattern is that **re-exporting the
 
 C++ application holds the generated `quick_shout_window` instance and subscribes to the public `on_click` of that instance. Python's `my_shout_app.ui` performs the same function. After re-exporting the layout, business code still operates on the window instance through public members and events.
 
-The initial window](/images/en/basics_form_initial.png) after ![runs the exported code
+![runs the exported code](/images/en/basics_form_initial.png)
 
 Test the host by entering `Ready for sync` in `textbox_message`. After activating `button_send`, the business callback reads the input and updates `label_hint`.
 
-The label feedback](/images/en/basics_form_sent.png) after ![enters text and triggers sending
+![enters text and triggers sending](/images/en/basics_form_sent.png)
 
-From the control directory of [,](/en/guide/) allows access to control properties, events, and routines. When installing programmatic content after export, refer to the placeholder replacement examples in [blank](/en/guide/controls/command-and-display/blank).
+From the control directory of [Control index](/en/guide/) allows access to control properties, events, and routines. When installing programmatic content after export, refer to the placeholder replacement examples in [blank](/en/guide/controls/command-and-display/blank).

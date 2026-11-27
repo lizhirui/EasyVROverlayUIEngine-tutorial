@@ -10,7 +10,7 @@ IPC泛指进程间通信。命名管道可以在本机用命名对象接通进�
 
 命名管道仍适合做小范围的本地发现。Engine通过`\\.\pipe\EasyVROverlayUIEngine.Bootstrap`发布当前初始化完成的连接描述，管道配置拒绝远程客户端。SDK从本机管道读出端口、服务进程编号、接入凭据和公钥指纹，再连环回地址。不必猜一个配置文件是否属于当前服务，也不需要在应用进程里复制服务端端口和证书实现。管道自己也用长度头与JSON交付其描述。它的作用在取得连接材料后完成，持久在线数据走TCP/TLS。
 
-安装后，Engine及其配置分别位于`bin/easyvrui_engine.exe`和`bin/config.json`。配置保存服务端口和共享接入凭据。默认端口49537，服务同时建立IPv4和独立的IPv6监听。SDK本地发现时使用环回地址。`EASYVRUI_ENGINE`为本地自动启动指定Engine可执行文件。显式远程连接使用`--easyvrui-host=值`、`--easyvrui-port=值`、`--easyvrui-access-credential=值`和`--easyvrui-public-key-fingerprint=值`，省略端口时使用49537。
+安装后，Engine及其配置分别位于`bin/easyvrui_engine.exe`和`bin/config.json`。配置保存服务端口和共享接入凭据（独立Engine首次启动时生成并保存凭据；服务托管的Engine读取配置中的凭据，缺省时为本次运行生成临时凭据）。服务模式安装还会将系统环境变量`EASYVROVERLAYUIENGINE_HOME`设为规范化后的安装根目录；`EASYVRUI_ENGINE`则用于覆盖SDK本地自动启动时的Engine可执行文件路径。默认端口49537，服务同时建立IPv4和独立的IPv6监听。SDK本地发现时使用环回地址。显式远程连接使用`--easyvrui-host=值`、`--easyvrui-port=值`、`--easyvrui-access-credential=值`和`--easyvrui-public-key-fingerprint=值`，省略端口时使用49537。
 
 把应用和引擎放在两台计算机上时，只有Engine所在机需要SteamVR和负责绘制的GPU。客户端所在机负责控件与回调，网络将提交和事件传给另一机。远程调用的体感会受到往返时延、帧大小和队列积压影响。把标签属性改成新值仍是客户端本地操作，只在提交阶段跨机器。需要等待返回的测量、启动状态或管理操作，则按各自公开接口语义区分同步返回与异步完成。
 

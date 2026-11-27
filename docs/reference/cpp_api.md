@@ -4,7 +4,7 @@
 
 普通控件的name采用`type_用途`，例如`button_ok`。设计器导出的公开控件成员与对应name同名，可直接通过`button_ok`访问；窗体类名对应设计文件名。
 
-本文对应`repo/sdk/api/cpp/include`中的公开头文件。安装后使用`sdk/api/cpp/include/`下的公开头，通过`#include <easyvrui.h>`可引入全部公开接口。库与CMake导出位于`sdk/engine_interface/`。
+本文对应`repo/sdk/api/cpp/include`中的公开头文件，介绍声明、参数、返回值、事件与调用约束。头文件路径以该公开包含目录为基准；应用可通过`#include <easyvrui.h>`一次引入全部公开接口。
 
 ## 使用约定
 
@@ -12,7 +12,9 @@
 
 窗口、控件、事件、几何和应用接口位于`easyvrui`命名空间，包括`get_preferred_ui_language()`。`drawing_image`和`drawing_path`位于全局命名空间。
 
-使用C++20，将API头与同一构建版本的库配套使用。内置C++应用默认链接`sdk/engine_interface/lib/engine_interface_static.lib`并使用静态CRT。静态库调用方定义`ENGINE_INTERFACE_STATIC`。选择DLL时，使用`lib/engine_interface.lib`导入库，并部署同一SDK的`bin/engine_interface.dll`，消费者须采用兼容的动态CRT。CMake辅助配置位于`sdk/engine_interface/lib/cmake/EngineInterface/`。C++接口使用标准库字符串、容器及回调，调用程序须匹配编译器、标准库、构建配置和ABI。
+Form Designer将窗体`settings`导出为`settings_ui.h`和`settings_ui.cpp`，界面类名为`settings_ui`。项目可同时生成用户类`settings`及其对应文件。窗体名称已有`_ui`后缀时，界面文件和类沿用单个后缀。
+
+使用C++20，将API头文件与同一构建版本的预编译`engine_interface`库组合使用。静态库调用方定义`ENGINE_INTERFACE_STATIC`；DLL调用方使用导入声明，并与DLL使用兼容的动态CRT。C++接口包含标准库字符串、容器和回调，调用程序应使用兼容的编译器、标准库、编译配置和ABI。具体应用负责关联头文件与静态库或动态库。
 
 声明中的`ENGINE_INTERFACE_API`是导出标记，以下签名省略该标记。头文件中为方便使用而引入的`using std::...`按标准库原义理解。
 
@@ -39,7 +41,7 @@
 
 ### 线程、生命周期与事件
 
-控件在创建时归属于当前UI线程。窗口、容器、文本和消息循环操作在所属线程执行。后台工作完成后，通过`control_base::begin_invoke(callback)`投递更新。普通事件由应用消息循环分派，`show_dialog()`通过同线程的嵌套循环继续分派。内部同步请求仅等待自身响应，期间到达的事件留在队列中，由后续消息循环处理。
+控件在创建时归属于当前UI线程。窗口、容器、文本和消息循环操作应在所属线程执行；后台工作完成后，通过`control_base::begin_invoke(callback)`投递更新。事件回调由UI消息分派调用，等待模态结果或同步请求时也可能发生回调重入。
 
 控件构造只要求`name`。名称必须非空且不含U+0000，文字应由有效Unicode标量组成；名称构造后只读；同一个控件容器中的名称唯一，不同容器可以使用相同名称。容器允许按名称取得对象。对象只能有一个父级，控件层级不得成环。
 
@@ -72,7 +74,7 @@ int main()
 }
 ```
 
-后续代码片段沿用上例的头文件和using namespace std，并在所属应用函数内执行；window_main表示调用方持有的`shared_ptr<window>`，owner表示有效的window引用。
+后续代码片段沿用上例的头文件和using namespace std，并在所属应用函数内执行；`window_main`表示调用方持有的`shared_ptr<window>`，`owner`表示有效的`window`引用。
 
 窗口显示期间，SDK将本进程的Ctrl+C作为界面快捷键处理。最后一个显示窗口关闭后恢复控制台处理。Ctrl+Break沿用控制台行为。
 
@@ -82,9 +84,10 @@ int main()
 control_base
 └── control
     ├── blank
+    ├── datetime_selector
     ├── text_control
     │   ├── button
-    │   │   └── toolbar_button
+    │   │   └── toolbar_button（工具栏按钮）
     │   ├── checkbox
     │   ├── selection_control
     │   │   ├── item_control
@@ -94,6 +97,7 @@ control_base
     │   │   ├── listview
     │   │   └── treeview
     │   ├── label
+    │   ├── rich_label
     │   ├── numericupdown
     │   ├── radiobutton
     │   ├── textbox
@@ -102,6 +106,7 @@ control_base
     │   │   ├── menubar
     │   │   └── menuitem
     │   ├── panel
+    │   │   ├── file_address_bar
     │   │   └── tabpage
     │   ├── scrollpanel
     │   ├── splitter
@@ -118,13 +123,13 @@ control_base
 
 属性通过`get_xxx()`和`set_xxx(value)`读取与修改。各setter校验并设置属性，值变化时触发对应事件。
 
-Tab导航针对当前窗口内可聚焦、可见、启用并处于活动页面的控件。正数tab_index先按数值升序排列；0排在其后。同组按窗口绝对top升序、再按left升序排列，位置相同保留遍历顺序。Tab向前、Shift+Tab向后，首尾循环。Pause切换实体键盘拦截模式；文本焦点控制IME/layout的显示，其他可聚焦控件仍可接收按键。
+Tab导航针对当前窗口内可聚焦、可见、启用并处于活动页面的控件。正数tab_index先按数值升序排列；0排在其后。同组按窗口绝对top升序、再按left升序排列，位置相同保留遍历顺序。Tab向前、Shift+Tab向后，首尾循环。Pause切换实体键盘拦截模式；可编辑文本控件聚焦时启用虚拟键盘和IME。`screen`按自身属性启用输入组件。
 
-激活编辑控件后，输入区下方的辅助输入条显示语言、IME名称和“输入法切换”按钮。点击按钮后先排空并收起输入界面，再打开模态对话框；layout独立选择，语言列表决定IME列表的过滤范围。各语言暂选在点击“确定”后应用，取消时丢弃；关闭后返回原编辑控件。实体键盘模式且存在有效当前窗口时，Alt+Shift切换语言并恢复该语言上次使用的IME，Ctrl+Shift切换当前语言内的IME。
+聚焦启用了IME的控件后，辅助输入条显示语言、IME名称和“输入法切换”按钮。点击按钮后先排空并收起输入界面，再打开模态对话框；layout独立选择，语言列表决定IME列表的过滤范围。各语言暂选在点击“确定”后应用，取消时丢弃；关闭后返回原焦点控件。实体键盘模式且存在有效当前窗口时，Alt+Shift切换语言并恢复该语言上次使用的IME，Ctrl+Shift切换当前语言内的IME。
 
 ### 强类型事件
 
-控件通过第一个参数提供事件来源，第二个参数的类型由事件成员声明决定。普通事件使用`event_args_t`，其余18种控件事件参数公开继承该基类。带取消或消费标记的事件允许回调更新`cancel`或`handled`，分发流程读取更新后的值。容器事件提供实际对象，索引以0开始。
+控件通过第一个参数提供事件来源，第二个参数的类型由事件成员声明决定。普通事件使用`event_args_t`。带取消或消费标记的事件允许回调更新`cancel`或`handled`，分发流程读取更新后的值。容器事件提供实际对象，索引以0开始。
 
 ### 远程连接启动参数
 
@@ -137,13 +142,13 @@ Tab导航针对当前窗口内可聚焦、可见、启用并处于活动页面�
 |`--easyvrui-access-credential=凭据`|远程接入凭据，必填|
 |`--easyvrui-public-key-fingerprint=指纹`|服务公钥SHA-256十六进制指纹，必填|
 
-应用可在同一命令行提供自己的启动参数。本地程序使用自动发现；普通控件创建和`run(application_name)`入口使用当前连接配置。协议消息定义见[Engine协议参考](./engine_protocol)。
+应用可在同一命令行提供自己的启动参数。本地程序使用自动发现；普通控件创建和`run(application_name)`入口使用当前连接配置。协议消息定义见`repo/docs/engine.md`。
 
 ### 设计文件导出布局
 
 生成的C++布局类继承设计root对应的SDK类型，全部非root控件引用均为public成员，成员名与各自control.name完全一致。嵌套容器、页签和菜单中的控件共同使用该生成类的成员命名空间，因此名称须在整份设计中唯一，符合C++与Python标识符规则，并避开root SDK公开入口。
 
-生成类自身只定义构造函数。普通导出将声明和实现分别写入同名`.h`与`.cpp`。构造函数创建控件、加入对应集合并初始化属性，默认name参数使用设计根节点的名称，例如`const std::u32string &name = U"sample_form"`。业务类持有生成窗体实例，通过同名成员绑定事件、读取和修改控件属性。
+生成类自身只定义构造函数。构造函数逐个创建控件、配置属性并加入对应集合；默认name参数直接使用设计rootname字面量，例如`const std::u32string &name = U"sample_form"`。应用派生类通过这些同名成员绑定事件和增加业务逻辑。
 
 图像与图标复用SDK的`drawing_image::load_file()`等绘图资源加载接口；值记录通过SDK类型直接构造，资源文件随导出结果部署。
 
@@ -151,18 +156,20 @@ Tab导航针对当前窗口内可聚焦、可见、启用并处于活动页面�
 
 |模块|头文件|
 |---|---|
+|基础控件与容器|`easyvrui/control/control_base.h`、`easyvrui/control/control.h`、`easyvrui/control/control_collection.h`、`easyvrui/control/container_control.h`、`easyvrui/control/blank.h`、`easyvrui/control/panel.h`、`easyvrui/control/scrollpanel.h`、`easyvrui/control/splitter.h`、`easyvrui/control/window.h`、`easyvrui/control/reference_object.h`|
+|文本与输入控件|`easyvrui/control/text_control.h`、`easyvrui/control/label.h`、`easyvrui/control/rich_label.h`、`easyvrui/control/button.h`、`easyvrui/control/checkbox.h`、`easyvrui/control/radiobutton.h`、`easyvrui/control/textbox.h`、`easyvrui/control/numericupdown.h`、`easyvrui/control/datetime_selector.h`、`easyvrui/control/file_address_bar.h`|
+|选择、列表、表格与树|`easyvrui/control/selection_control.h`、`easyvrui/control/item_control.h`、`easyvrui/control/item_collection.h`、`easyvrui/control/combobox.h`、`easyvrui/control/listbox.h`、`easyvrui/control/grid.h`、`easyvrui/control/listview.h`、`easyvrui/control/listview_column.h`、`easyvrui/control/listview_column_collection.h`、`easyvrui/control/listview_item.h`、`easyvrui/control/listview_item_collection.h`、`easyvrui/control/listview_cell_collection.h`、`easyvrui/control/treeview.h`、`easyvrui/control/tree_node.h`、`easyvrui/control/tree_node_collection.h`|
+|图形、进度与页签|`easyvrui/control/image.h`、`easyvrui/control/screen.h`、`easyvrui/control/progressbar.h`、`easyvrui/control/slider.h`、`easyvrui/control/tabcontrol.h`、`easyvrui/control/tabpage.h`、`easyvrui/control/tabpage_collection.h`|
+|菜单与工具栏|`easyvrui/control/menu_container.h`、`easyvrui/control/menubar.h`、`easyvrui/control/menuitem.h`、`easyvrui/control/toolbar.h`、`easyvrui/control/toolbar_button.h`、`easyvrui/control/toolbar_button_collection.h`|
 |绘图|`drawing_image.h`、`drawing_path.h`、`easyvrui/render/render_context.h`、`easyvrui/render/render_style.h`|
 |应用入口|`easyvrui/application.h`、`easyvrui/application_management.h`|
-|模态窗口结果|`easyvrui/dialog/dialog_result.h`|
+|模态窗口结果与标准对话框|`easyvrui/dialog/dialog_result.h`、`easyvrui/dialog/color_dialog.h`、`easyvrui/dialog/file_open_dialog.h`、`easyvrui/dialog/file_save_dialog.h`、`easyvrui/dialog/font_dialog.h`、`easyvrui/dialog/inputbox.h`、`easyvrui/dialog/messagebox.h`|
 |基础值与文字工具|`easyvrui/common/color.h`、`easyvrui/common/error.h`、`easyvrui/common/error_diagnostic.h`、`easyvrui/common/keyboard_key.h`、`easyvrui/common/u32string_hash.h`、`easyvrui/common/value.h`|
-|标准对话框|`easyvrui/dialog/color_dialog.h`、`easyvrui/dialog/file_open_dialog.h`、`easyvrui/dialog/file_save_dialog.h`、`easyvrui/dialog/font_dialog.h`、`easyvrui/dialog/inputbox.h`、`easyvrui/dialog/messagebox.h`|
-|活行列与树节点|`easyvrui/control/listview_column.h`、`easyvrui/control/listview_column_collection.h`、`easyvrui/control/listview_item.h`、`easyvrui/control/listview_item_collection.h`、`easyvrui/control/listview_cell_collection.h`、`easyvrui/control/tree_node.h`、`easyvrui/control/tree_node_collection.h`|
 |事件|`easyvrui/event/event_args.h`、`easyvrui/event/event_container.h`、`easyvrui/event/event_signal.h`|
 |空间几何|`easyvrui/geometry/pose.h`、`easyvrui/geometry/quat.h`、`easyvrui/geometry/vec3.h`|
 |输入组件|`easyvrui/input/input_provider.h`|
 |错误与语言|`easyvrui/localization/error.h`、`easyvrui/localization/language_pack.h`、`easyvrui/localization/request_error.h`|
-|聚合入口|`easyvrui.h`|
-|导出配置|`engine_interface_api.h`|
+|聚合入口与导出配置|`easyvrui.h`、`engine_interface_api.h`|
 
 普通应用使用控件public接口，派生控件使用本文件各节列出的protected扩展点。
 
@@ -172,7 +179,7 @@ Tab导航针对当前窗口内可聚焦、可见、启用并处于活动页面�
 
 常用控件、应用、事件和绘图接口的聚合入口。普通窗口应用通常从此头文件开始。
 
-公开包含目录共有76个头文件，含聚合入口`easyvrui.h`。各接口的声明位置见下文。
+公开包含目录共有79个头文件，含聚合入口`easyvrui.h`及其直接包含的78份配套头文件。各接口的声明位置见下文。
 
 ### `easyvrui/application.h`
 
@@ -188,13 +195,12 @@ Tab导航针对当前窗口内可聚焦、可见、启用并处于活动页面�
 |`void run(const std::u32string &application_name)`|以必填的非空名称注册会话，并运行窗口应用的事件循环。窗口全部结束或运行环境停止时返回。|
 |`bool pump(uint64_t timeout_millisecond = 0u)`|分派消息和回调，提交待更新窗口，并按需等待指定毫秒。返回false表示循环结束。|
 |`std::filesystem::path get_application_directory()`|返回应用目录，可据此定位资源。|
+|`std::string get_preferred_ui_language()`|读取首选界面语言代码。|
 |`double measure_text(const std::u32string &text, const font_t &font)`|按指定字体测量文本宽度，单位为逻辑像素。|
-
-应用消息循环在UI线程分派服务端事件、异步完成通知和本地投递的回调，再推进定时状态并提交待更新窗口。连接分别保存异步响应和服务端事件，消息泵合并两队列时保留收包顺序。例如旧输入文本先分派，之后才调用输入区关闭的完成回调。内部同步响应按请求ID单独交付。实现见[IPC、TLS与连接队列](/advanced/03_ipc_tls_protocol)。
 
 ### `easyvrui/application_management.h`
 
-`application_entry_t.name`保存匹配后的名称，`icon_path`保存图标路径，`icon_data`保存内嵌图片的原始文件字节。`language`为空时匹配系统语言并回退`en`。清单字段见[应用清单](./application_manifest)。
+`application_entry_t.name`保存匹配后的名称，`icon_path`保存图标路径，`icon_data`保存内嵌图片的原始文件字节。`language`为空时匹配系统语言并回退`en`。清单字段见[应用清单](/reference/application_manifest)。
 
 应用清单读取、本机启动、应用快照查询与结束入口。
 
@@ -203,13 +209,25 @@ Tab导航针对当前窗口内可聚焦、可见、启用并处于活动页面�
 |声明|用途与返回值|
 |---|---|
 |`application_entry_t read_application_entry(const std::filesystem::path &manifest_path, const std::u32string &language = {})`|读取`.easyvrui`清单并解析为启动描述，清单缺失或字段非法时抛出异常。|
-|`uint32_t launch_application(const std::filesystem::path &manifest_path, const std::vector<std::u32string> &extra_argument_list = {})`|在调用进程所在机器上读取清单并启动该应用，返回新进程PID；extra_argument_list追加到清单声明的参数之后。Python条目通过PATH中的python.exe执行清单指定的脚本。启动失败抛出异常。|
+|`uint32_t launch_application(const std::filesystem::path &manifest_path, const std::vector<std::u32string> &extra_argument_list = {}, bool run_as_administrator = false)`|在调用进程所在机器按清单启动应用并返回PID，工作目录为清单所在目录。管理员要求取参数与清单字段的逻辑或：普通权限进程请求管理员启动时抛出错误键为`administrator_privilege_required`的`engine_error`，管理员进程启动普通目标时使用普通令牌。额外参数追加到清单参数之后；清单与额外参数均未指定远程选项时自动继承启动者的远程连接参数。Python脚本通过PATH中的`python.exe`运行；启动失败按阶段抛出`operation_failed`或`process_launch_failed`。|
+|`bool get_is_administrator()`|检查当前进程令牌完整性级别是否至少为High（管理员权限）。|
+|`void open_system_path(const std::filesystem::path &path, bool run_as_administrator = false)`|用Windows Shell打开路径。显式管理员参数与目标文件声明的权限取逻辑或：普通权限进程请求管理员目标时抛出`administrator_privilege_required`，管理员进程打开普通目标时使用普通Shell令牌。|
+|`bool get_system_path_requires_administrator(const std::filesystem::path &path)`|读取清单权限、PE内嵌`requireAdministrator`或快捷方式的管理员标志及目标属性。|
+|`std::shared_ptr<drawing_image> get_file_icon(const std::filesystem::path &path, uint32_t size = 48u, bool include_administrator_badge = true)`|返回指定大小的正方形图标。清单图标等比居中，`.ico`按图像解码，普通文件使用Shell图标。`size`范围为1至256（越界抛`invalid_drawing_image`），清单或Shell图标加载失败时返回空指针，管理员盾牌用于识别出的需提权独立本地图标或清单图标并可独立开关。|
+|`std::shared_ptr<drawing_image> get_default_file_icon(bool directory, bool drive, uint32_t size, bool administrator_badge = false)`|按文件、文件夹或驱动器类型返回Windows默认图标（加载失败返回空指针），`size`范围为1至256（越界抛`invalid_drawing_image`），可在回退图标上叠加盾牌。|
+|`bool get_file_icon_badge(const std::filesystem::path &path)`|返回该路径的图标是否应叠加管理员盾牌，供启动器绘制回退图标时使用。|
+|`bool get_has_individual_file_icon(const std::filesystem::path &path)`|按扩展名判断文件是否使用独立图标解析。|
+|`std::shared_ptr<drawing_image> get_system_file_icon(int32_t index, uint32_t size, bool administrator_badge = false)`|按Shell图像列表索引读取共享图标（加载失败返回空指针），`size`范围为1至256（越界抛`invalid_drawing_image`）。索引可包含Shell叠加标志。|
+|`system_file_info_t get_system_file_info(const std::filesystem::path &path, bool directory, uint32_t size)`|按文件类型和目录标志获取`system_file_info_t`（含`std::wstring type_name`及可为空的`std::shared_ptr<drawing_image> icon`），`size`范围为1至256。|
+|`void refresh_system_icon_cache()`|刷新进程内的共享系统图标，供界面的手动刷新操作调用。|
 |`std::vector<application_snapshot_t> get_application_snapshot_list()`|查询引擎返回的本机已验证应用快照列表，含会话名称与窗口列表。|
 |`bool terminate_application(uint64_t session_id)`|结束目标会话对应的进程，返回引擎给出的操作结果。|
 |`bool close_application_window(uint64_t session_id, uint64_t window_id)`|请求目标会话正常关闭指定窗口，返回事件是否送达。|
 |`void request_application_snapshot_list(std::function<void(std::vector<application_snapshot_t>, std::exception_ptr)> completion)`|异步查询应用快照。|
 |`void request_terminate_application(uint64_t session_id, std::function<void(bool, std::exception_ptr)> completion)`|异步请求结束目标应用。|
 |`void request_close_application_window(uint64_t session_id, uint64_t window_id, std::function<void(bool, std::exception_ptr)> completion)`|异步请求正常关闭目标窗口。|
+
+系统图标按Shell图像索引、叠加索引、尺寸及盾牌状态缓存，有效期为60秒。独立的文件图标按文件大小和修改时间验证，应用清单引用的外部图标按相同方式验证。
 
 清单解析与启动都在SDK本地完成，因此程序与引擎可以位于不同机器。单实例由应用自身实现。实例协调由目标app使用进程实例锁等方式执行。应用列表与结束操作要求经验证的引擎本机会话；列表包含Desktop，过滤输入组件。Desktop和输入组件受结束操作保护。
 
@@ -219,7 +237,7 @@ Tab导航针对当前窗口内可聚焦、可见、启用并处于活动页面�
 
 声明：`enum class application_type_t`。
 
-`application`表示普通应用，`ime`与`layout`表示输入组件，`desktop`表示桌面。
+应用清单的`type`字段对应此枚举，省略时使用`application`。
 
 |声明|用途与调用语义|
 |---|---|
@@ -255,7 +273,8 @@ native使用本机可执行文件，python使用Python主脚本。
 |`application_runtime_t runtime = application_runtime_t::native`|启动运行时，默认native。|
 |`std::filesystem::path script`|Python主脚本路径。|
 |`std::vector<std::u32string> argument_list`|追加给目标程序的参数列表。|
-|`application_type_t type = application_type_t::application`|应用类型，默认`application`。|
+|`bool run_as_administrator = false`|清单声明的是否要求管理员权限启动，默认`false`。|
+|`application_type_t type = application_type_t::application`|应用类别，默认application。|
 
 #### `application_window_t`
 
@@ -290,12 +309,19 @@ native使用本机可执行文件，python使用Python主脚本。
 
 ### `easyvrui/common/value.h`
 
-字体、控件矩形和方向枚举。
+字体、控件矩形、方向与文本对齐枚举。
 
 #### 自由函数与类型别名
 
 |声明|用途与返回值|
 |---|---|
+
+#### `horizontal_alignment_t`与`vertical_alignment_t`
+
+|类型|成员|
+|---|---|
+|`horizontal_alignment_t`|`left`、`center`、`right`|
+|`vertical_alignment_t`|`top`、`center`、`bottom`|
 
 #### `font_t`
 
@@ -310,7 +336,21 @@ native使用本机可执行文件，python使用Python主脚本。
 |`uint64_t size = DEFAULT_SIZE`|字体逻辑字号。|
 |`bool bold = false`|是否加粗。|
 |`bool italic = false`|是否斜体。|
+|`bool underline = false`|是否绘制下划线。|
+|`bool strikethrough = false`|是否绘制删除线。|
 |`bool operator==(const font_t &other) const = default`|按对应成员值比较是否相等，返回bool。|
+
+#### `rich_text_font_t`与`rich_text_t`
+
+|类型|字段|用途|
+|---|---|---|
+|`rich_text_font_t`|`optional<u32string> family`、`optional<uint64_t> size`|覆盖字体族和逻辑字号。|
+|`rich_text_font_t`|`optional<bool> bold`、`italic`、`underline`、`strikethrough`|分别覆盖粗体、斜体、下划线和删除线。|
+|`rich_text_t`|`u32string text`|片段文字。|
+|`rich_text_t`|`optional<uint32_t> foreground_color`、`background_color`|片段的RGBA文字和背景色。|
+|`rich_text_t`|`rich_text_font_t font`|片段的字体覆盖项。|
+
+未设置的字体字段和前景色继承控件样式，未设置的背景色为透明。`false`可显式关闭继承的字体装饰。
 
 #### `rectangle_t`
 
@@ -423,12 +463,12 @@ RRGGBBAA颜色值及分量、十六进制和透明度操作。
 
 |声明|用途与返回值|
 |---|---|
-|`u32string get_reference_object_type_name(reference_object_type_t value)`|把参考目标枚举转换为Unicode名称。|
-|`reference_object_type_t parse_reference_object_type(const u32string &value)`|把Unicode名称解析为参考目标；无效名称抛出异常。|
+|`u32string get_reference_object_name(reference_object_t value)`|把参考目标枚举转换为Unicode名称。|
+|`reference_object_t parse_reference_object(const u32string &value)`|把Unicode名称解析为参考目标；无效名称抛出异常。|
 
-#### `reference_object_type_t`
+#### `reference_object_t`
 
-声明：`enum class reference_object_type_t`。
+声明：`enum class reference_object_t`。
 
 |声明|用途与调用语义|
 |---|---|
@@ -437,17 +477,6 @@ RRGGBBAA颜色值及分量、十六进制和透明度操作。
 |`head`|头显参考，跟随位置和旋转。|
 |`left`|左手柄参考。|
 |`right`|右手柄参考。|
-
-#### `reference_object_t`
-
-声明：`struct reference_object_t`。
-
-|声明|用途与调用语义|
-|---|---|
-|`reference_object_type_t type = reference_object_type_t::world`|参考目标类别。|
-|`bool operator==(const reference_object_t &other) const = default`|按对应成员值比较是否相等，返回bool。|
-
-## 事件与值容器
 
 ### `easyvrui/event/event_signal.h`
 
@@ -461,11 +490,12 @@ RRGGBBAA颜色值及分量、十六进制和透明度操作。
 
 |声明|用途与调用语义|
 |---|---|
-|`uint64_t add(std::function<void(source_type &, argument_type_list &...)> callback)`|注册非空回调并返回uint64_t token，供后续remove或operator-=使用。|
+|`uint64_t add(std::function<void(source_type &, argument_type_list &...)> callback, bool copy_on_dispatch = false)`|注册非空回调并返回uint64_t token，供后续remove或operator-=使用；空回调抛出`event_handler_null`。默认保留回调对象状态，`copy_on_dispatch=true`时在派发快照中复制可调用对象。|
 |`event_signal &operator+=(std::function<void(source_type &, argument_type_list &...)> callback)`|注册callback并返回事件链引用，适合C#式追加语法；需要撤销时优先调用add保留token。|
 |`bool remove(uint64_t token)`|删除token指定的处理函数；找到返回true，否则false。|
 |`event_signal &operator-=(uint64_t token)`|移除token对应处理函数，并返回事件链引用。|
 |`void clear()`|移除全部处理函数。|
+|`std::size_t get_size() const`|返回当前已注册的处理函数数量。|
 |`bool is_empty() const`|查询事件链是否有零个订阅。|
 |`void call(source_type &source, argument_type_list &...argument_list) const`|按注册顺序，以source和引用参数调用当前事件链；回调返回void。|
 
@@ -481,7 +511,7 @@ RRGGBBAA颜色值及分量、十六进制和透明度操作。
 
 ### `easyvrui/event/event_args.h`
 
-`event_args_t`为空基类。下表其余18种结构体均公开继承`event_args_t`。每个事件以其声明的具体参数类型调用订阅者。
+`event_args_t`是以下19种带字段事件参数的公开基类。事件回调接收来源对象和具体参数类型的可变引用。
 
 |参数类型|字段|用途|
 |---|---|---|
@@ -503,6 +533,7 @@ RRGGBBAA颜色值及分量、十六进制和透明度操作。
 |`tree_node_event_args_t`|`tree_node *node = nullptr`|操作的树节点。取消选择时`node`为空。|
 |`render_error_event_args_t`|`std::string message`|渲染异常的消息。|
 |`controller_event_args_t`|`std::u32string hand`、`bool trigger = false`、`bool grip = false`、`uint8_t joystick_x = 128u`、`uint8_t joystick_y = 128u`、`bool joystick_pressed = false`、`bool primary = false`、`bool secondary = false`|手柄按键和摇杆状态。摇杆轴范围为0至255，`primary`为左手X或右手A，`secondary`为左手Y或右手B。|
+|`global_pointer_event_args_t`|`std::u32string hand`、`std::u32string button`、`uint64_t timestamp_ms = 0u`|全局手柄按键边沿。`hand`为`left`或`right`；`button`为`trigger`、`grip`、`joystick`（摇杆按键按压）、`primary`（左手X或右手A）或`secondary`（左手Y或右手B）；`timestamp_ms`为Unix毫秒时间戳。|
 |`control_input_event_args_t`|`control_input_type_t type = control_input_type_t::none`、`std::u32string hand`、`std::u32string key`、`std::u32string text`、`double left = 0.0`、`double top = 0.0`、`double x = 0.0`、`double y = 0.0`、`int64_t steps = 0`、`bool horizontal = false`、`bool shift = false`、`bool ctrl = false`、`bool alt = false`、`bool meta = false`、`bool captured = false`、`bool cancelled = false`、`bool handled = false`、`bool has_position = false`、`bool has_local_position = false`|派生控件的输入分派参数。通过`type`区分输入，按类型读取字段，设置`handled`可标记已消费。|
 
 `control_input_type_t`的取值为`none`、`click`、`focus_in`、`focus_out`、`pointer_enter`、`pointer_leave`、`pointer_move`、`pointer_down`、`pointer_up`、`scroll`、`key_down`、`key_up`、`text_input`、`controller_input`。
@@ -542,8 +573,10 @@ RRGGBBAA颜色值及分量、十六进制和透明度操作。
 
 |声明|用途与调用语义|
 |---|---|
+|`event_container<controller_event_args_t> on_controller_input`|受保护的手柄状态事件，初始状态或按键/摇杆状态变化时派发给可交互的指针捕获目标或激光命中控件/窗口。|
 |`virtual std::shared_ptr<control_base> get_retained_owner()`|返回操作期间保留对象生命期所需的共享引用。|
 |`virtual bool notify_property_changed(std::u32string_view name, bool changed, event_container<event_args_t> *specific = nullptr, bool redraw = true)`|属性发生变化时触发通知并返回true。redraw控制是否请求重绘。|
+|`template<typename value_type> bool notify_property_changed(std::u32string_view name, const value_type &old_value, const value_type &next_value, event_container<event_args_t> *specific = nullptr, bool redraw = true)`|按`old_value != next_value`比较新旧值并在变化时触发属性通知，返回是否发生变化。|
 |`control_base(const u32string &name, const u32string &type)`|构造对象；参数、默认状态和约束见本类型说明。|
 |`virtual void process_input(control_input_event_args_t &event)`|处理控件输入事件的虚函数；可派生扩展，通过event.type区分输入类型。|
 
@@ -599,7 +632,7 @@ RRGGBBAA颜色值及分量、十六进制和透明度操作。
 |`virtual void hide()`|隐藏控件或窗口。相关焦点、捕获和输入区按窗口状态释放。|
 |`virtual void focus()`|请求将键盘焦点移到本控件。|
 |`virtual void activate()`|激活本对象所属窗口；窗口重载激活自身。|
-|`virtual rectangle_t get_absolute_rectangle() const`|返回控件在窗口内的逻辑矩形。|
+|`virtual rectangle_t get_absolute_rectangle() const`|返回相对于渲染表面左上角的逻辑矩形。窗口自身返回完整表面矩形。|
 |`virtual bool get_focused() const`|查询控件是否拥有焦点。|
 |`virtual std::shared_ptr<window> get_owning_window() const`|返回控件所属窗口，尚未归属窗口时返回空指针。|
 
@@ -696,8 +729,8 @@ RRGGBBAA颜色值及分量、十六进制和透明度操作。
 |---|---|
 |`event_container<control_collection_event_args_t> on_control_added`|添加子控件时触发，包含控件对象`item`和索引`index`。|
 |`event_container<control_collection_event_args_t> on_control_removed`|移除子控件时触发，包含控件对象`item`和索引`index`。|
-|`virtual control_collection &get_control_list()`|返回属于该容器的可直接操作的集合；可查询、索引、添加、插入、移除和清空。const重载提供只读集合访问。|
-|`virtual const control_collection &get_control_list() const`|返回属于该容器的可直接操作的集合；可查询、索引、添加、插入、移除和清空。const重载提供只读集合访问。|
+|`virtual control_collection &get_control_list()`|返回属于该容器的活集合；可查询、索引、添加、插入、移除和清空。const重载提供只读集合访问。|
+|`virtual const control_collection &get_control_list() const`|返回属于该容器的活集合；可查询、索引、添加、插入、移除和清空。const重载提供只读集合访问。|
 |`virtual std::vector<control *> get_active_item_list() const`|返回当前参与显示和交互的直接控件列表。|
 
 ##### 派生扩展成员（protected）
@@ -729,6 +762,8 @@ RRGGBBAA颜色值及分量、十六进制和透明度操作。
 |声明|用途与调用语义|
 |---|---|
 |`explicit control_collection(container_control &owner)`|构造本类型实例；参数含义见本类型说明及签名。|
+|`control_collection(const control_collection &) = delete`|禁止复制构造；集合绑定到所属容器。|
+|`control_collection &operator=(const control_collection &) = delete`|禁止复制赋值。|
 |`virtual ~control_collection()`|析构对象，结束其资源或引用的生命周期。|
 |`size_t get_size() const`|返回集合项数。|
 |`bool is_empty() const`|查询控件集合是否为空。|
@@ -818,16 +853,25 @@ RRGGBBAA颜色值及分量、十六进制和透明度操作。
 
 声明：`class label : public text_control`。
 
-标签继承`text_control`，用于显示文本，默认文字为空。
+标签继承`text_control`，用于显示文本，默认文字为空。单行模式将文本中的换行符略过后绘制为一行。多行模式支持`\n`、`\r\n`及按内容宽度在字素边界自动折行。每行独立水平对齐，整个文本块垂直对齐，内容区域裁剪溢出的文字。
 
 继承`text_control`的全部public属性访问、方法和事件；下表列出本类型自身声明或覆盖的成员。
 
 |声明|用途与调用语义|
 |---|---|
 |`event_container<event_args_t> on_text_changed`|文本变化时触发。|
+|`event_container<event_args_t> on_multiline_changed`|多行模式变化时触发。|
+|`event_container<event_args_t> on_horizontal_alignment_changed`|文本行的水平对齐方式变化时触发。|
+|`event_container<event_args_t> on_vertical_alignment_changed`|文本块的垂直对齐方式变化时触发。|
 |`explicit label(const u32string &name)`|按不可变Unicode名称name创建实例；其他属性使用各自setter配置。|
 |`virtual const u32string &get_text() const`|读取文本内容。|
 |`virtual void set_text(const u32string &value)`|设置文本内容。|
+|`virtual bool get_multiline() const`|读取多行模式，默认`false`。|
+|`virtual void set_multiline(bool value)`|设置多行模式。|
+|`virtual horizontal_alignment_t get_horizontal_alignment() const`|读取文本行的水平对齐方式，默认`left`。|
+|`virtual void set_horizontal_alignment(horizontal_alignment_t value)`|设置文本行的水平对齐方式。|
+|`virtual vertical_alignment_t get_vertical_alignment() const`|读取文本块的垂直对齐方式，默认`center`。|
+|`virtual void set_vertical_alignment(vertical_alignment_t value)`|设置文本块的垂直对齐方式。|
 
 ##### 派生扩展成员（protected）
 
@@ -836,6 +880,22 @@ RRGGBBAA颜色值及分量、十六进制和透明度操作。
 |声明|用途与调用语义|
 |---|---|
 |`void render(render_context &context) const override`|使用context绘制控件正文。派生类可重载以实现自定义外观。|
+
+### `easyvrui/control/rich_label.h`
+
+`rich_label`继承`text_control`，通过`rich_label(const u32string &name)`创建。默认背景透明，前景色为`render_style::TEXT_FOREGROUND_COLOR`。
+
+|成员|用途|
+|---|---|
+|`get_rich_text_list() const`、`set_rich_text_list(const vector<rich_text_t> &value)`|读取或整体替换片段。字体族须非空且不含NUL，字号须大于0。值相同时保留当前绘制状态。|
+|`get_multiline() const`、`set_multiline(bool value)`|读取或设置多行模式，默认`false`。|
+|`get_horizontal_alignment() const`、`set_horizontal_alignment(horizontal_alignment_t value)`|读取或设置水平对齐，默认`left`。|
+|`get_vertical_alignment() const`、`set_vertical_alignment(vertical_alignment_t value)`|读取或设置垂直对齐，默认`center`。|
+|`on_rich_text_list_changed`、`on_multiline_changed`、`on_horizontal_alignment_changed`、`on_vertical_alignment_changed`|对应属性变化时触发，参数为`event_args_t`。|
+
+全部片段连续排版，共享行布局和基线。多行模式支持显式换行和自动折行。每一行按水平属性对齐，整个文字块按垂直属性对齐，内容裁剪在控件矩形内。禁用时，默认文字色和片段文字色均应用禁用色。
+
+窗体设计器可编辑片段顺序、文字、颜色和独立字体覆盖项，并将这些数据保存到`.easyvruifrm`或导出为C++和Python代码。
 
 ### `easyvrui/control/button.h`
 
@@ -876,11 +936,15 @@ RRGGBBAA颜色值及分量、十六进制和透明度操作。
 
 文本输入控件，默认text为空、selectable=true，read_only=false，max_length=0，multiline=false，两条滚动条显示开关均为false，选区起点和长度均为0。multiline保留换行；单行模式移除换行。修改max_length会规范现有文本。字号和布局决定实际行高，文本索引以码点计数并对齐字素边界。
 
+多行模式下，`horizontal_scrollbar_visible=false`时按视口宽度在字素边界折行，`true`时以显式换行分行并保留横向滚动。单行及多行模式均对齐视口内放得下的行，较长的行随水平滚动移动。文本块高度适合视口时按设置垂直对齐，较高的文本块从顶部开始滚动。光标、选区、激光命中、`Up`、`Down`、`Home`、`End`和IME定位均使用分行后的坐标。
+
 继承`text_control`的全部public属性访问、方法和事件；下表列出本类型自身声明或覆盖的成员。
 
 |声明|用途与调用语义|
 |---|---|
 |`event_container<event_args_t> on_text_changed`|文本变化时触发。|
+|`event_container<event_args_t> on_horizontal_alignment_changed`|文本行的水平对齐方式变化时触发。|
+|`event_container<event_args_t> on_vertical_alignment_changed`|文本块的垂直对齐方式变化时触发。|
 |`event_container<event_args_t> on_read_only_changed`|只读状态变化时触发。|
 |`event_container<event_args_t> on_selectable_changed`|文本选择设置变化时触发。|
 |`event_container<event_args_t> on_selection_changed`|选择状态变化时触发；文本编辑器使用start/length，项目与页签使用selected。|
@@ -892,6 +956,10 @@ RRGGBBAA颜色值及分量、十六进制和透明度操作。
 |`bool is_focusable() const override`|查询控件类型是否可接收焦点；实际焦点还受visible、enabled和窗口模态状态影响。|
 |`virtual const u32string &get_text() const`|读取文本内容。|
 |`virtual void set_text(const u32string &value)`|设置文本内容。|
+|`virtual horizontal_alignment_t get_horizontal_alignment() const`|读取文本行的水平对齐方式，默认`left`。|
+|`virtual void set_horizontal_alignment(horizontal_alignment_t value)`|设置文本行的水平对齐方式。|
+|`virtual vertical_alignment_t get_vertical_alignment() const`|读取文本块的垂直对齐方式，默认`center`。|
+|`virtual void set_vertical_alignment(vertical_alignment_t value)`|设置文本块的垂直对齐方式。|
 |`virtual bool get_read_only() const`|读取用户输入只读状态；程序仍可设置文本。|
 |`virtual void set_read_only(bool value)`|设置用户输入只读状态；程序仍可设置文本。|
 |`virtual bool get_selectable() const`|是否允许文本选择、显示光标和唤起输入界面；false时仍可接收控件焦点。|
@@ -922,6 +990,7 @@ RRGGBBAA颜色值及分量、十六进制和透明度操作。
 
 |声明|用途与调用语义|
 |---|---|
+|`rectangle_t get_input_rectangle() const override`|获取插入位置所在的可见视觉行输入区。插入位置滚出视口时使用最近的可见行。|
 |`virtual uint64_t get_selection_anchor() const`|读取选区锚点，保留选择方向。|
 |`virtual uint64_t get_selection_active() const`|读取选区活动端，即当前插入端。|
 |`virtual void set_selection(uint64_t anchor, uint64_t active)`|以anchor和active指定带方向的选择范围；位置限制在文本范围并对齐字素边界。|
@@ -995,10 +1064,12 @@ RRGGBBAA颜色值及分量、十六进制和透明度操作。
 |声明|用途与调用语义|
 |---|---|
 |`explicit item_collection(item_control &owner)`|构造本类型实例；参数含义见本类型说明及签名。|
-|`void add(const u32string &item)`|追加项目；对象引用方式由调用方保证存活，shared_ptr方式由容器保留共享所有权。|
-|`void insert(size_t index, const u32string &item)`|在index位置插入；index不小于当前数量时追加。具体元素类型、所有权和重名约束见所属容器说明。|
-|`u32string remove(size_t index)`|按参数指定的位置、对象或名称移除项目；返回被移除对象或是否成功，具体返回类型见签名。|
-|`u32string remove(const u32string &item)`|按参数指定的位置、对象或名称移除项目；返回被移除对象或是否成功，具体返回类型见签名。|
+|`item_collection(const item_collection &) = delete`|禁止复制构造；集合绑定到所属项目控件。|
+|`item_collection &operator=(const item_collection &) = delete`|禁止复制赋值。|
+|`void add(const u32string &item)`|按UTF-32字符串值追加项目，允许重复文字。|
+|`void insert(size_t index, const u32string &item)`|在index位置插入UTF-32字符串值；index不小于当前数量时追加，允许重复文字。|
+|`u32string remove(size_t index)`|按0起始索引移除项目并返回被移除的`u32string`值；越界时抛出异常。|
+|`u32string remove(const u32string &item)`|移除首次匹配的`item`并返回被移除的`u32string`值；不存在时抛出异常。|
 |`void clear()`|从集合移除全部文字项目。|
 |`void assign(const vector<u32string> &item_list)`|用item_list整体替换文本项目列表，并更新选择与显示状态。|
 |`size_t get_size() const`|返回集合项数。|
@@ -1017,6 +1088,8 @@ RRGGBBAA颜色值及分量、十六进制和透明度操作。
 
 声明：`class combobox : public item_control`。
 
+组合框主体默认使用`CONTROL_BACKGROUND_COLOR`，下拉列表默认使用`INPUT_BACKGROUND_COLOR`。设置自定义`background_color`时，主体和下拉列表共用该颜色。
+
 继承`item_control`的全部public属性访问、方法和事件；下表列出本类型自身声明或覆盖的成员。
 
 |声明|用途与调用语义|
@@ -1024,6 +1097,7 @@ RRGGBBAA颜色值及分量、十六进制和透明度操作。
 |`event_container<event_args_t> on_dropdown_style_changed`|下拉样式变化时触发。|
 |`event_container<event_args_t> on_text_changed`|文本变化时触发。|
 |`explicit combobox(const u32string &name)`|按不可变Unicode名称name创建实例；其他属性使用各自setter配置。|
+|`~combobox() override`|析构组合框。|
 |`virtual const u32string &get_text() const`|读取文本内容。|
 |`virtual void set_text(const u32string &value)`|设置文本内容。|
 |`virtual combobox_dropdown_style_t get_dropdown_style() const`|读取下拉样式，默认dropdown_list。|
@@ -1041,7 +1115,84 @@ RRGGBBAA颜色值及分量、十六进制和透明度操作。
 |`void refresh_item_list() override`|同步选中文字、下拉列表及布局。|
 |`void handle_item_list_changed(const vector<u32string> &previous) override`|处理项目列表变化并调整当前选择和显示。|
 |`void render(render_context &context) const override`|使用context绘制控件正文。派生类可重载以实现自定义外观。|
+|`uint32_t get_popup_background_color() const`|读取下拉列表的实际背景色。|
 |`void render_overlay(render_context &context) const override`|绘制控件浮层，例如组合框弹出菜单。|
+
+### `easyvrui/control/datetime_selector.h`
+
+#### `datetime_t`
+
+声明：`struct datetime_t`。
+
+公历本地钟面时间值记录，精度为秒，默认值为`1970-01-01 00:00:00`。支持默认相等比较`operator==`。
+
+|声明|用途与调用语义|
+|---|---|
+|`static constexpr int32_t MINIMUM_YEAR = 1`|合法最小年份。|
+|`static constexpr int32_t MAXIMUM_YEAR = 9999`|合法最大年份。|
+|`int32_t year = 1970`|公历年份（1至9999）。|
+|`uint8_t month = 1u`|月份（1至12）。|
+|`uint8_t day = 1u`|日期（1至当月天数）。|
+|`uint8_t hour = 0u`|小时（0至23）。|
+|`uint8_t minute = 0u`|分钟（0至59）。|
+|`uint8_t second = 0u`|秒（0至59）。|
+|`bool operator==(const datetime_t &other) const = default`|逐字段比较两个日期时间是否相等。|
+|`bool is_valid() const`|检查年月日时分秒是否处于合法公历与时间范围。|
+|`uint8_t get_month_day_count() const`|返回当前`year/month`的天数（按公历闰年规则）；非法年月返回`0`。|
+
+自由函数：`u32string format_datetime(const datetime_t &value)`将日期时间格式化为`YYYY-MM-DD HH:MM:SS`。
+
+#### `datetime_selector`
+
+声明：`class datetime_selector : public control`。
+
+日期时间选择控件，以`std::optional<datetime_t>`保存状态，默认值为`std::nullopt`。传入非法日期时间时抛出错误键为`property_type_mismatch`（属性名`datetime`）的`engine_error`。有效值变化时先触发`on_property_changed`（`property_name = U"datetime"`），再以`event_args_t`触发`on_datetime_changed`。
+
+激光点击输入区或聚焦时按`Enter`/`Space`可展开或收起弹出面板，失焦、点击面板外部、按`Escape`或点击OK时收起。面板上部为公历日历（年月箭头切月，点选日期立即更新值），下部为时、分、秒三列微调（按钮循环增减，滚轮或摇杆指向对应时间列时滚动增减），底部提供Now（填入当前本地时间）、Clear（清空为`std::nullopt`）和OK按钮。
+
+|声明|用途与调用语义|
+|---|---|
+|`event_container<event_args_t> on_datetime_changed`|日期时间值变化时触发。|
+|`explicit datetime_selector(const u32string &name)`|按不可变Unicode名称构造实例。|
+|`~datetime_selector() override`|析构日期时间选择器。|
+|`bool is_focusable() const override`|返回该控件支持键盘焦点。|
+|`virtual std::optional<datetime_t> get_datetime() const`|读取当前日期时间值；未选择时为`std::nullopt`。|
+|`virtual void set_datetime(const std::optional<datetime_t> &value)`|设置或清空日期时间值；非空值须满足`value->is_valid()`。|
+
+##### 派生扩展成员（protected）
+
+|声明|用途与调用语义|
+|---|---|
+|`void process_input(control_input_event_args_t &event) override`|处理点击、滚动、键盘与失焦输入。|
+|`void render(render_context &context) const override`|绘制收起状态的输入区正文。|
+|`void render_overlay(render_context &context) const override`|绘制展开状态的日历与时间选择浮层。|
+
+```cpp
+auto date_input = std::make_shared<easyvrui::datetime_selector>(U"datetime_selector_start");
+date_input->set_datetime(easyvrui::datetime_t{2024, 2u, 29u, 9u, 30u, 0u});
+std::optional<easyvrui::datetime_t> start = date_input->get_datetime();
+date_input->set_datetime(std::nullopt);
+```
+
+### `easyvrui/control/file_address_bar.h`
+
+#### `file_address_bar`
+
+声明：`class file_address_bar : public panel`。
+
+层级面包屑与路径文本编辑互切的地址栏控件。构造时绑定配套的`std::shared_ptr<textbox> editor`（为空时抛出`operation_failed`）。调用方应将`file_address_bar`与`editor`放入同一父容器；调用`set_rect()`时自动同步`editor`的矩形尺寸。
+
+|声明|用途与调用语义|
+|---|---|
+|`file_address_bar(const std::u32string &name, std::shared_ptr<textbox> editor)`|构造地址栏并绑定配套路径编辑框。|
+|`~file_address_bar() override`|析构地址栏并注销编辑器事件订阅。|
+|`void configure_navigation(std::function<bool(const std::u32string &)> handler, const std::u32string &root_text = {}, std::function<std::vector<std::filesystem::path>()> root_reader = {})`|配置路径导航回调、空路径时显示的根文字（如“计算机”）以及根目录枚举回调。|
+|`void set_directory(const std::filesystem::path &value)`|更新当前目录、同步编辑框文本并切换到面包屑层级显示。|
+|`void set_rect(const rectangle_t &value) override`|更新地址栏矩形并同步配套编辑框的矩形。|
+|`void start_editing()`|切换到编辑框显示，聚焦编辑框并全选当前路径文本。|
+|`bool submit_address()`|将编辑框文本提交给导航回调；回调返回`true`时退出编辑并切回层级显示，返回`false`时保持编辑状态。|
+
+点击地址栏空白区域、按`Alt+D`或`Ctrl+L`可进入编辑；编辑框按`Enter`调用`submit_address()`，按`Escape`或失焦时放弃编辑并恢复层级显示。点击`>`展开子目录菜单，点击`<<`展开折叠的上级目录。
 
 ### `easyvrui/control/listbox.h`
 
@@ -1265,17 +1416,42 @@ RRGGBBAA颜色值及分量、十六进制和透明度操作。
 
 声明：`class screen : public control`。
 
-实时显示器画面控件。screen_id为uint64_t，默认0；编号按当前引擎提供的显示器枚举对应，切屏使用set_screen_id。控件矩形决定逻辑显示尺寸，设为屏幕像素尺寸可按相同逻辑尺寸显示；实际空间大小仍受所属窗口physical_scale影响。get_screen_available提供可用状态。
+实时显示器画面控件。screen_id为uint64_t，默认0；编号按当前引擎提供的显示器枚举对应，切屏使用set_screen_id。画面保持源显示器纵横比并在控件内居中，多余区域使用黑色背景。get_screen_available提供可用状态。
+
+捕获帧率按显示器统计，渲染提交帧率按所属窗口统计，单位均为FPS。两个只读值初始为`0.0`，切换显示器或捕获不可用时归零。任一值变化时触发对应事件，处理函数可以同时读取两个当前值。
+
+启用`accept_keyboard`后，点击控件可获得焦点并按属性唤起输入区。`enable_virtual_keyboard`控制虚拟模式下的layout，`enable_ime`在两种键盘模式下控制输入条、IME候选界面和IME路由。两个开关均关闭时，控件仍可聚焦并接收实体键盘按键。聚焦期间修改开关时，SDK排空原路径并更新输入区。SDK通过Engine将按键和IME提交转发给Windows前台应用。失焦、禁用、隐藏、关闭`accept_keyboard`或关闭窗口时，释放已转发的按键。
+
+服务托管时，Helper通过`inject_pointer`和`inject_keyboard`在活动输入桌面执行输入。Engine通过`screen_pointer_input`和`screen_keyboard_input`接收SDK请求。[Engine输入协议](./engine_protocol.md#操作显示器指针screen_pointer_input)
 
 |声明|用途与调用语义|
 |---|---|
 |`event_container<event_args_t> on_screen_id_changed`|显示器变化时触发。|
+|`event_container<event_args_t> on_accept_pointer_changed`|桌面指针操作开关变化时触发。|
+|`event_container<event_args_t> on_accept_keyboard_changed`|桌面键盘操作开关变化时触发。|
+|`event_container<event_args_t> on_enable_virtual_keyboard_changed`|虚拟键盘开关变化时触发。|
+|`event_container<event_args_t> on_enable_ime_changed`|IME开关变化时触发。|
 |`event_container<event_args_t> on_screen_unavailable`|显示器捕获不可用时触发。|
 |`event_container<event_args_t> on_screen_restored`|显示器捕获恢复时触发。|
+|`event_container<event_args_t> on_capture_frame_rate_changed`|桌面捕获帧率变化时触发。|
+|`event_container<event_args_t> on_render_frame_rate_changed`|窗口渲染提交帧率变化时触发。|
 |`explicit screen(const std::u32string &name)`|构造实例；参数和约束见本类型说明。|
 |`virtual uint64_t get_screen_id() const`|读取显示器编号。|
 |`virtual void set_screen_id(uint64_t value)`|设置显示器编号。|
 |`virtual bool get_screen_available() const`|读取当前显示器捕获是否可用。|
+|`virtual double get_capture_frame_rate() const`|读取当前显示器产生新捕获画面的帧率。|
+|`virtual double get_render_frame_rate() const`|读取所属窗口成功提交的帧率。|
+|`virtual bool get_accept_pointer() const`|读取桌面指针操作开关，默认`false`。|
+|`virtual void set_accept_pointer(bool value)`|设置桌面指针操作开关。关闭时释放当前桌面左键拖拽。|
+|`bool is_focusable() const override`|返回是否允许键盘操作。|
+|`virtual bool get_accept_keyboard() const`|读取桌面键盘操作开关，默认`false`。|
+|`virtual void set_accept_keyboard(bool value)`|设置桌面键盘操作开关。|
+|`virtual bool get_enable_virtual_keyboard() const`|读取虚拟键盘开关，默认`true`。|
+|`virtual void set_enable_virtual_keyboard(bool value)`|设置虚拟键盘开关。|
+|`virtual bool get_enable_ime() const`|读取IME开关，默认`false`。|
+|`virtual void set_enable_ime(bool value)`|设置IME开关。|
+|`void set_visible(bool value) override`|设置可见状态；隐藏时先释放当前桌面指针和按键。|
+|`void set_enabled(bool value) override`|设置启用状态；禁用时先释放当前桌面指针和按键。|
 
 ##### 派生扩展成员（protected）
 
@@ -1284,6 +1460,7 @@ RRGGBBAA颜色值及分量、十六进制和透明度操作。
 |声明|用途与调用语义|
 |---|---|
 |`void render(render_context &context) const override`|派生绘制入口；使用context绘制正文。|
+|`void process_input(control_input_event_args_t &event) override`|将画面区域内的激光移动、扳机和滚动换算为归一化桌面坐标。|
 
 ### `easyvrui/control/scrollpanel.h`
 
@@ -1416,7 +1593,7 @@ cell表示单元格选择，row表示整行选择。
 
 表头背景覆盖整个可见宽度，长标题末尾显示省略号。实体键盘捕获模式中，Ctrl点击切换单项、Shift扩展选择；显式select_cell的extend/toggle参数可由应用控制选择。begin_edit和commit_edit返回是否成功，失败说明可从get_edit_error读取；结束编辑时IME/layout对应当前单元格的可见矩形。
 
-grid_value_t为variant<u32string, int64_t, double, bool>。value_provider_t读取指定行列；value_writer_t尝试写入并通过error返回失败说明；cell_renderer_t接收render_context与grid_cell_render_t；edit_validator_t在提交前检查单元格和值。
+`grid_value_t`为`variant<u32string, int64_t, double, bool>`。value_provider_t读取指定行列；value_writer_t尝试写入并通过error返回失败说明；cell_renderer_t接收render_context与grid_cell_render_t；edit_validator_t在提交前检查单元格和值。
 
 |声明|用途与调用语义|
 |---|---|
@@ -1518,23 +1695,26 @@ grid_value_t为variant<u32string, int64_t, double, bool>。value_provider_t读�
 |成员|用途|
 |---|---|
 |`explicit listview(const std::u32string &name)`|创建列表视图。|
-|`get_column_list()`|返回活的`listview_column_collection`引用，提供const重载。|
-|`get_item_list()`|返回活的`listview_item_collection`引用，提供const重载。|
-|`get_selected_index() / set_selected_index(value)`|读取或设置主选中项的位置，`-1`表示空选区。|
-|`get_selected_item() / set_selected_item(item)`|读取或选择集合中的行对象，`nullptr`表示空选区。|
-|`select_item(index, extend = false, toggle = false)`|按行下标选择。在多选模式下可扩展到锚点或切换当前行。|
-|`get_selected_item_list()`|读取当前选区的行对象。|
-|`get_multi_select() / set_multi_select(value)`|切换单选或多选。|
-|`get_row_height() / set_row_height(value)`|设置正的行高，默认30逻辑像素。|
-|`get_header_height() / set_header_height(value)`|设置表头高度，默认32，0隐藏表头。|
-|`get_visible_row_count()`|读取一屏可容纳的逻辑行数。|
-|`get_vertical_scrollbar_visible() / get_horizontal_scrollbar_visible()`|读取滚动条的显示状态。|
-|`on_item_list_changed`、`on_column_list_changed`|项目或列集合变化时触发。|
-|`on_column_width_changed`、`on_column_click`|列宽变化或点击表头时触发。参数为`listview_column_event_args_t`，提供列对象`column`及其索引`index`。|
-|`on_selection_changed`、`on_row_double_click`|选区变化或激活一行时触发。行双击参数为`listview_item_event_args_t`，提供行对象`item`及其索引`index`。|
-|`on_row_height_changed`、`on_header_height_changed`|行高或表头高度变化时触发。|
+|`bool is_focusable() const override`|返回列表视图支持键盘焦点。|
+|`listview_column_collection &get_column_list()`及const重载|返回活的`listview_column_collection`引用。|
+|`listview_item_collection &get_item_list()`及const重载|返回活的`listview_item_collection`引用。|
+|`int64_t get_selected_index() const` / `void set_selected_index(int64_t value)`|读取或设置主选中项的位置，`-1`表示空选区。|
+|`std::shared_ptr<listview_item> get_selected_item() const` / `void set_selected_item(const std::shared_ptr<listview_item> &item)`|读取或选择集合中的行对象，`nullptr`表示空选区。|
+|`void select_item(int64_t index, bool extend = false, bool toggle = false)`|按行下标选择。在多选模式下可扩展到锚点或切换当前行。|
+|`void clear_selection()`|清空当前选区。|
+|`bool is_blank_at(double left, double top) const`|判断给定控件局部坐标是否落在空白区域。|
+|`const std::vector<std::shared_ptr<listview_item>> &get_selected_item_list() const`|返回当前选区的只读共享指针列表引用。|
+|`bool get_multi_select() const` / `void set_multi_select(bool value)`|切换单选或多选。|
+|`uint64_t get_row_height() const` / `void set_row_height(uint64_t value)`|设置正的行高，默认30逻辑像素。|
+|`uint64_t get_header_height() const` / `void set_header_height(uint64_t value)`|设置表头高度，默认32，0隐藏表头。|
+|`size_t get_visible_row_count() const`|读取一屏可容纳的逻辑行数。|
+|`bool get_vertical_scrollbar_visible() const` / `bool get_horizontal_scrollbar_visible() const`|读取滚动条的显示状态。|
+|`event_container<listview_item_event_args_t> on_item_list_changed`、`event_container<listview_column_event_args_t> on_column_list_changed`|项目或列集合变化时触发。|
+|`event_container<listview_column_event_args_t> on_column_width_changed`、`event_container<listview_column_event_args_t> on_column_click`|列宽变化或点击表头时触发，提供列对象`column`及其索引`index`。|
+|`event_container<event_args_t> on_selection_changed`、`event_container<listview_item_event_args_t> on_row_double_click`|选区变化或激活一行时触发。行双击提供行对象`item`及其索引`index`。|
+|`event_container<event_args_t> on_row_height_changed`、`event_container<event_args_t> on_header_height_changed`|行高或表头高度变化时触发。|
 
-排序可将原有行对象以新顺序传入`get_item_list().assign(...)`。集合按对象身份维护选择。
+派生类可覆盖受保护的`refresh_layout()`、`render(render_context &)`与`process_input(control_input_event_args_t &)`扩展布局与绘制。排序可将原有行对象以新顺序传入`get_item_list().assign(...)`，集合按对象身份维护选择。
 
 ### `easyvrui/control/listview_column.h`
 
@@ -1546,11 +1726,11 @@ grid_value_t为variant<u32string, int64_t, double, bool>。value_provider_t读�
 
 ### `easyvrui/control/listview_column_collection.h`
 
-`listview_column_collection`由列表视图持有。使用`get_size()`读取数量，`contains(item)`和`get_index(item)`按列对象查询，`operator[]`返回共享引用。`add/insert`插入列，`remove`按对象或位置移出并返回共享指针，`assign`替换全部内容，`clear`清空集合。插入前校验所有权和宽度。
+`listview_column_collection`由列表视图持有，不可复制，析构时释放集合关联。使用`get_size()`读取数量，`contains(item)`和`get_index(item)`按列对象查询，`operator[]`返回`std::shared_ptr<listview_column>`值。`add/insert`插入列，`remove(size_t)`或`remove(const std::shared_ptr<listview_column> &)`移出并返回共享指针，`assign`替换全部内容，`clear`清空集合。插入前校验所有权和宽度。
 
 ### `easyvrui/control/listview_item_collection.h`
 
-`listview_item_collection`使用与列集合相同的成员名，元素为`std::shared_ptr<listview_item>`。每个行对象同时归属一个列表，移出后可以加入另一列表。
+`listview_item_collection`由列表视图持有，不可复制，提供与列集合一致的成员名，元素类型为`std::shared_ptr<listview_item>`，`remove`支持按索引或共享指针移除。每个行对象同时归属一个列表，移出后可以加入另一列表。
 
 ### `easyvrui/control/listview_cell_collection.h`
 
@@ -1558,17 +1738,17 @@ grid_value_t为variant<u32string, int64_t, double, bool>。value_provider_t读�
 
 ### `easyvrui/control/treeview.h`
 
-`treeview`继承`selection_control`。通过`get_node_list()`访问根节点集合，提供const重载。`get_selected_node()/set_selected_node(tree_node *)`按对象访问选择，`nullptr`清除选择。`get_row_height()`和`get_vertical_scrollbar_visible()`读取布局状态。
+`treeview`继承`selection_control`，重写`is_focusable()`支持键盘焦点，并提供`is_blank_at(double left, double top)`和`clear_selection()`。通过`get_node_list()`访问根节点集合（提供const重载）。`get_selected_node()/set_selected_node(tree_node *)`按对象访问选择，`nullptr`清除选择。`get_row_height()`和`get_vertical_scrollbar_visible()`读取布局状态。派生类可覆盖受保护的`refresh_layout()`、`render(render_context &)`与`process_input(control_input_event_args_t &)`。
 
 `on_node_list_changed`在增删节点时触发，`on_selection_changed`在选区变化时触发，`on_node_expanded/on_node_collapsed`对应展开和折叠，`on_node_activated`对应双击或Enter。`tree_node_event_args_t::node`指向事件涉及的节点。
 
 ### `easyvrui/control/tree_node.h`
 
-`tree_node(text, expanded, tag)`创建节点，默认文字和标签为空，节点折叠。`get_text/set_text`、`get_tag/set_tag`和`get_expanded/set_expanded`访问各属性。`expand()`和`collapse()`切换展开状态。`get_parent()`返回父节点指针，根节点和脱离父节点的节点返回`nullptr`。`get_node_list()`返回子节点的可直接操作的集合并提供const重载。
+`tree_node(text, expanded, tag)`创建节点，默认文字和标签为空，节点折叠。`get_text/set_text`、`get_tag/set_tag`和`get_expanded/set_expanded`访问各属性。`expand()`和`collapse()`切换展开状态。`get_parent()`返回父节点指针，根节点和脱离父节点的节点返回`nullptr`。`get_node_list()`返回子节点的活集合并提供const重载。
 
 ### `easyvrui/control/tree_node_collection.h`
 
-根节点与子节点集合使用`get_size/contains/get_index`查询，通过`operator[]`取得共享引用。`add/insert/assign`配置对象，`remove`按对象或位置移出，`clear`清空。节点按对象身份区分，每个节点同时归属一个集合。移动节点时先从原集合移出，再加入目标集合。
+根节点与子节点集合不可复制，使用`get_size/contains/get_index`查询，通过`operator[]`返回`std::shared_ptr<tree_node>`值。`add/insert/assign`配置对象，`remove(size_t)`或`remove(const std::shared_ptr<tree_node> &)`移出并返回共享指针，`clear`清空。节点按对象身份区分，每个节点同时归属一个集合。移动节点时先从原集合移出，再加入目标集合。
 
 ### `easyvrui/control/menu_container.h`
 
@@ -1654,6 +1834,8 @@ window_main->set_menu(menubar_main);
 
 菜单栏，默认font为font_t{}、row_height=32。主菜单及各层子菜单均通过get_control_list()维护。open/close管理菜单交互，重复点击展开的主菜单会收起；激光展开时初始无子项高亮，指向具体项后高亮。窗口通过set_menu关联菜单，也可将menubar作为实际元素加入窗口control_list。
 
+按住`Alt`或进入菜单键盘导航时显示助记符下划线。单独按下再松开`Alt`可切换键盘导航。`Alt+Shift`切换输入语言时保留文本编辑焦点。
+
 |声明|用途与调用语义|
 |---|---|
 |`event_container<event_args_t> on_font_changed`|字体变化时触发。|
@@ -1696,6 +1878,8 @@ window_main->set_menu(menubar_main);
 |`event_container<event_args_t> on_tool_size_changed`|工具格边长变化时触发。|
 |`toolbar_button_collection &get_button_list()`及const重载|访问按钮及分隔线集合。|
 |`explicit toolbar(const u32string &name)`|构造实例；参数和约束见本类型说明。|
+|`~toolbar() override`|析构工具栏。|
+|`bool is_focusable() const override`|覆盖焦点能力查询。|
 |`void dispose() override`|清空button_list并释放该工具栏。|
 |`virtual size_t get_tool_size() const`|读取工具按钮的正整数格边长。|
 |`virtual void set_tool_size(size_t value)`|设置工具按钮的正整数格边长。|
@@ -1737,6 +1921,8 @@ window_main->get_control_list().add(toolbar_main);
 |`event_container<event_args_t> on_click`|执行工具栏按钮操作时触发。|
 |`event_container<event_args_t> on_icon_changed`|图标变化时触发。|
 |`explicit toolbar_button(const std::u32string &name)`|构造实例；参数和约束见本类型说明。|
+|`~toolbar_button() override`|析构工具栏按钮。|
+|`bool is_focusable() const override`|覆盖焦点能力查询。|
 |`control_base *get_parent() const override`|返回所属toolbar；未加入任何工具栏时返回nullptr。|
 |`void dispose() override`|从所属按钮集合移除并释放该按钮。|
 |`virtual const std::shared_ptr<const drawing_image> &get_icon() const`|读取可选图像资源的共享引用，nullptr表示清除。|
@@ -1752,7 +1938,7 @@ window_main->get_control_list().add(toolbar_main);
 
 声明：`class toolbar_button_collection`。
 
-属于toolbar的按钮容器，构造函数为private，由toolbar.get_button_list()提供。按索引或名称查询，名称在栏内唯一。add/insert既可接受shared_ptr<toolbar_button>，也可根据name创建并返回按钮引用。insert越过末尾时追加；remove返回shared_ptr<toolbar_button>；get_item_list返回指针列表的副本。
+属于toolbar的按钮容器，构造函数为private，由toolbar.get_button_list()提供。按索引或名称查询，名称在栏内唯一。add/insert既可接受`shared_ptr<toolbar_button>`，也可根据name创建并返回按钮引用。insert越过末尾时追加；remove返回`shared_ptr<toolbar_button>`；get_item_list返回指针列表的副本。
 
 |声明|用途与调用语义|
 |---|---|
@@ -1814,7 +2000,7 @@ window_main->get_control_list().add(toolbar_main);
 
 声明：`class tabpage_collection : public control_collection`。
 
-页面集合的索引、名称唯一性和生命周期规则与`control_collection`一致。`get_page()`和`operator[]`返回页面引用。`insert()`越过末尾时追加，移除页面时自动调整当前选择。
+页面集合的索引、名称唯一性、不可复制（继承自`control_collection`）与生命周期规则与`control_collection`一致。`get_page()`和`operator[]`返回页面引用。`insert()`越过末尾时追加，移除页面时自动调整当前选择。
 
 |声明|用途与调用语义|
 |---|---|
@@ -1824,7 +2010,7 @@ window_main->get_control_list().add(toolbar_main);
 |`tabpage &get_page(const u32string &name) const`|按index或name返回页面引用；不存在时抛出异常。|
 |`void insert(size_t index, control &page) override`|在index位置插入；index不小于当前数量时追加。具体元素类型、所有权和重名约束见所属容器说明。|
 |`void insert(size_t index, std::shared_ptr<control> page) override`|在index位置插入；index不小于当前数量时追加。具体元素类型、所有权和重名约束见所属容器说明。|
-|`using control_collection::add`|追加项目；对象引用方式由调用方保证存活，shared_ptr方式由容器保留共享所有权。|
+|`add(...)`（继承自`control_collection`）|追加页面；对象引用方式由调用方保证存活，shared_ptr方式由容器保留共享所有权。|
 |`using control_collection::remove`|移除页面并返回`shared_ptr<control>`，可直接加入其它合适的集合。|
 |`std::shared_ptr<control> remove(size_t index) override`|移除页面并返回`shared_ptr<control>`，可直接加入其它合适的集合。|
 |`void clear() override`|移除全部页面。|
@@ -1897,6 +2083,7 @@ window_main->get_control_list().add(tabcontrol_main);
 |`bool is_focusable() const override`|查询该控件是否具有焦点能力；实际焦点还受visible、enabled和模态关系限制。|
 |`virtual int64_t get_selected_index() const`|读取当前选中索引，-1表示未选择。|
 |`virtual void set_selected_index(int64_t value)`|设置当前选中索引，-1表示未选择。|
+|`std::optional<int64_t> get_header_index_at(double left, double top) const`|按控件本地坐标查询命中的页签索引；未命中或命中关闭按钮、导航区时返回`std::nullopt`。|
 |`virtual tabpage *get_selected_page() const`|读取当前tabpage指针；未选择时为nullptr。|
 |`virtual tab_position_t get_tab_position() const`|读取页签位于top、bottom、left或right。|
 |`virtual void set_tab_position(tab_position_t value)`|设置页签位于top、bottom、left或right。|
@@ -1950,19 +2137,19 @@ VR顶层容器、空间参考、显示、模态及窗口交互。
 
 声明：`class window : public container_control`。
 
-继承container_control。默认rect={0,0,640,360}、visible=false、title=name、标题字体Segoe UI/20、physical_scale=1.0倍、position和rotation全0、reference_object为world；标题栏、关闭按钮、移动和缩放均开启，跟踪菜单默认包含world/body/left/right/head。顶层窗口的空间位置由`position`和参考对象确定。窗口展开宽度为`rect.width * physical_scale / 1000`米，高度为`rect.height * physical_scale / 1000`米。可移动且尺寸足够时，正文外侧预留控制环；派生窗口可通过受保护的get_content_top()安排正文。普通单手侧握执行远距离移动与旋转，双手分别抓住两个控制环块执行受约束旋转。通过`get_closed()`查询窗口是否已关闭。
+继承`container_control`。默认客户区为`640×360`，窗口初始隐藏，标题为控件名，标题字体为Segoe UI/20，物理缩放倍数为1.0。空间位置由`position`、`rotation`和`reference_object`确定。`position`对应完整表面的左上角。跟踪菜单默认包含`world`、`body`、`left`、`right`和`head`。
 
-首次显示仅在未显式调用`set_physical_scale()`时继承SDK确定的同会话来源窗口缩放。显式设置优先，包括1.0。模态窗口采用world参考对象，可独立拖动。
+`rect.width`和`rect.height`是客户区的逻辑尺寸。直属控件从客户区左上角`(0,0)`布局，停靠的`menubar`位于标题栏与客户区之间。普通窗口启用`rotatable`或`resizable`时，四周各增加20逻辑像素。可见标题栏再增加48逻辑像素，可见菜单栏再增加其行高。开关这些区域时客户区尺寸和控件局部坐标保持不变，完整表面随之扩缩。
 
-`show_dialog(owner_window)`要求所有者是同一UI运行时内可交互的其他窗口，对话框须隐藏、尚未关闭且未进入模态。调用期间直接所有者暂时失去交互资格。可在按钮或菜单事件中同步打开对话框，并以当前可交互对话框作为下一层的所有者。渲染提交期间调用会报错。详见[会话与嵌套模态循环](/advanced/04_session_and_context)。
-
-进入模态时将结果重置为`dialog_result_t::none`。设置非`none`的结果会请求关闭。处理器取消关闭时，对话框保持活动，结果恢复到设置前的值。结果仍为`none`时通过标题栏关闭按钮或`close()`成功关闭，返回`dialog_result_t::cancel`。调用方可保留窗口对象，在返回后读取控件值。
+首次`show()`使用显式设置的`physical_scale`，未设置时继承SDK确定的同会话来源窗口的缩放。`show_dialog(owner)`在UI线程启动一个嵌套事件循环，只禁用直接所有者。按钮或菜单回调可以打开对话框，对话框还可打开下一层。每层结束后恢复其所有者交互，调用继续执行。取消关闭时保持当前模态关系。模态窗口在World中置于前方，可独立拖动。请在普通事件回调中打开对话框，绘制及窗口提交阶段禁止进行模态等待。
 
 继承`container_control`的全部public属性访问、方法和事件；下表列出本类型自身声明或覆盖的成员。
 
-曲率k为有限非负数，单位m⁻¹。k=0表示平面，非零时总弧度θ=k×get_physical_width()，属性和Engine校验均要求θ<2π。get_physical_width()是展开弧长，按rect.width×physical_scale/1000计算。窗口左下角交互柄和对应摇杆的安全调节上限为160°；该上限属于UI操作规则，set_curvature()仍使用前述合法域。改变rect或physical_scale也须保持曲率合法。
+曲率k为有限非负数，单位m⁻¹。k=0表示平面，总弧度为`k * get_physical_width()`，须小于2π。`get_physical_width()`按完整表面逻辑宽度乘以`physical_scale / 1000`计算。调整客户区尺寸、控制框、曲率或物理缩放时均须满足该约束。通过左下角交互柄调节时采用160°的安全弧角上限。
 
-左下角曲率柄与右下角缩放柄使用trigger，按住期间保持选中并锁定激光末端；曲率使用摇杆左右调整，缩放使用上下调整。左下角双击恢复平面。curvature_adjustable和resizable分别控制两种调节入口。
+左下角曲率柄与右下角缩放柄使用trigger，按住期间保持选中并锁定激光末端；曲率使用摇杆左右调整，缩放使用上下调整。左下角双击恢复平面。`curvature_adjustable`和`scalable`分别控制两种调节入口。
+
+普通窗口启用`rotatable`或`resizable`时显示20逻辑像素的控制框和8个控制块。`rotatable`允许双手用侧握键抓住不同控制块旋转。`resizable`允许用扳机沿四边单轴调整客户区尺寸，或沿四角保持客户区起始宽高比。拖动时对侧边或角保持原位，客户区各轴的下限为96逻辑像素与该轴起始长度中的较小值，曲面总弧度保持小于2π。`movable`控制普通侧握抓取移动。透明窗口使用`background_color = 0x00000000`，并关闭`show_title_bar`、`show_border`、`rotatable`、`resizable`、`scalable`和`curvature_adjustable`。
 
 |声明|用途与调用语义|
 |---|---|
@@ -1978,12 +2165,17 @@ VR顶层容器、空间参考、显示、模态及窗口交互。
 |`event_container<event_args_t> on_curvature_adjustable_changed`|曲率交互调整开关改变时触发。|
 |`event_container<event_args_t> on_reference_object_changed`|空间参考对象变化时触发。|
 |`event_container<event_args_t> on_show_title_bar_changed`|标题栏显示设置变化时触发。|
+|`event_container<event_args_t> on_show_border_changed`|窗口主体描边开关变化时触发。|
 |`event_container<event_args_t> on_tracking_mode_set_changed`|跟踪模式选项变化时触发。|
 |`event_container<event_args_t> on_show_close_button_changed`|关闭按钮显示设置变化时触发。|
+|`event_container<event_args_t> on_rotatable_changed`|旋转交互开关变化时触发。|
 |`event_container<event_args_t> on_movable_changed`|移动开关变化时触发。|
-|`event_container<event_args_t> on_resizable_changed`|缩放开关变化时触发。|
+|`event_container<event_args_t> on_resizable_changed`|逻辑尺寸拖拽开关变化时触发。|
+|`event_container<event_args_t> on_scalable_changed`|物理缩放开关变化时触发。|
 |`event_container<event_args_t> on_load`|窗口首次显示加载时触发一次。|
 |`event_container<event_args_t> on_shown`|窗口显示时触发。|
+|`event_container<global_pointer_event_args_t> on_global_pointer_down`|任一手柄按键按下时触发，分发给运行时已登记且未关闭、未释放的全部窗口，与可见性、焦点和激光命中无关。|
+|`event_container<global_pointer_event_args_t> on_global_pointer_up`|任一手柄按键释放时触发，分发给运行时已登记且未关闭、未释放的全部窗口，与可见性、焦点和激光命中无关。|
 |`event_container<event_args_t> on_hidden`|窗口隐藏时触发。|
 |`event_container<cancel_event_args_t> on_closing`|普通关闭前触发。`event.cancel = true`可中止此次关闭。|
 |`event_container<event_args_t> on_closed`|窗口关闭完成时触发。|
@@ -1994,8 +2186,10 @@ VR顶层容器、空间参考、显示、模态及窗口交互。
 |`event_container<event_args_t> on_deactivated`|窗口失去活动状态时触发。|
 |`event_container<event_args_t> on_move_start`|窗口交互移动或旋转开始时触发。|
 |`event_container<interaction_end_event_args_t> on_move_end`|窗口交互移动或旋转结束时触发，cancelled说明结束原因。|
-|`event_container<event_args_t> on_resize_start`|窗口交互缩放开始时触发。|
-|`event_container<interaction_end_event_args_t> on_resize_end`|窗口交互缩放结束时触发。|
+|`event_container<event_args_t> on_resize_start`|窗口逻辑尺寸拖拽开始时触发。|
+|`event_container<interaction_end_event_args_t> on_resize_end`|窗口逻辑尺寸拖拽结束时触发。|
+|`event_container<event_args_t> on_scale_start`|开始交互调整物理缩放倍数时触发。|
+|`event_container<interaction_end_event_args_t> on_scale_end`|物理缩放结束或取消时触发。|
 |`event_container<event_args_t> on_curvature_adjust_start`|开始调整窗口曲率时触发。|
 |`event_container<interaction_end_event_args_t> on_curvature_adjust_end`|结束窗口曲率调整时触发。|
 |`explicit window(const u32string &name)`|按不可变Unicode名称name创建实例；其他属性使用各自setter配置。|
@@ -2023,24 +2217,31 @@ VR顶层容器、空间参考、显示、模态及窗口交互。
 |`virtual void set_position(const vec3_t &value)`|设置相对reference_object的位置偏移，单位米。|
 |`virtual const vec3_t &get_rotation() const`|读取相对reference_object的XYZ欧拉旋转，单位度。|
 |`virtual void set_rotation(const vec3_t &value)`|设置相对reference_object的XYZ欧拉旋转，单位度。|
-|`virtual const reference_object_t &get_reference_object() const`|读取空间参考目标。|
-|`virtual void set_reference_object(const reference_object_t &value)`|设置空间参考目标。|
+|`virtual reference_object_t get_reference_object() const`|读取空间参考目标。|
+|`virtual void set_reference_object(reference_object_t value)`|设置空间参考目标。|
 |`virtual bool get_show_title_bar() const`|读取是否显示窗口标题栏。|
 |`virtual void set_show_title_bar(bool value)`|设置是否显示窗口标题栏。|
-|`virtual const std::set<reference_object_type_t> &get_tracking_mode_set() const`|读取标题栏跟踪菜单的模式集合；空集合隐藏切换按钮。|
-|`virtual void set_tracking_mode_set(const std::set<reference_object_type_t> &value)`|设置标题栏跟踪菜单的模式集合；空集合隐藏切换按钮。|
+|`virtual bool get_show_border() const`|读取窗口主体描边开关，默认`true`。|
+|`virtual void set_show_border(bool value)`|设置窗口主体描边的显示状态。|
+|`virtual const std::set<reference_object_t> &get_tracking_mode_set() const`|读取标题栏跟踪菜单的模式集合；空集合隐藏切换按钮。|
+|`virtual void set_tracking_mode_set(const std::set<reference_object_t> &value)`|设置标题栏跟踪菜单的模式集合；空集合隐藏切换按钮。|
 |`virtual bool get_show_close_button() const`|读取是否显示标题栏关闭按钮。|
 |`virtual void set_show_close_button(bool value)`|设置是否显示标题栏关闭按钮。|
-|`virtual bool get_movable() const`|读取是否允许交互移动和控制环旋转。|
-|`virtual void set_movable(bool value)`|设置是否允许交互移动和控制环旋转。|
+|`virtual bool get_movable() const`|读取窗口交互平移开关。|
+|`virtual void set_movable(bool value)`|设置窗口交互平移开关。关闭时取消正在进行的平移。|
+|`virtual bool get_rotatable() const`|读取旋转开关，默认`true`。|
+|`virtual void set_rotatable(bool value)`|设置控制块的侧握旋转能力。关闭时取消正在进行的旋转。|
 |`virtual bool get_resizable() const`|读取是否允许交互改变逻辑尺寸。|
 |`virtual void set_resizable(bool value)`|设置是否允许交互改变逻辑尺寸。|
+|`virtual bool get_scalable() const`|读取右下角物理缩放柄开关，默认`true`。|
+|`virtual void set_scalable(bool value)`|设置物理缩放柄的显示与交互。关闭时取消正在进行的缩放。|
 |`virtual bool get_curvature_adjustable() const`|读取曲率交互开关，默认true。|
 |`virtual void set_curvature_adjustable(bool value)`|设置左下角曲率按钮的显示与交互；关闭时立即取消当前曲率拖动和摇杆调整，重新开启后松开trigger再按可开始调整。|
-|`virtual double get_physical_width() const`|返回展开宽度，单位米：rect.width×physical_scale/1000。|
-|`virtual double get_physical_height() const`|返回高度，单位米：rect.height×physical_scale/1000。|
+|`virtual double get_physical_width() const`|返回完整表面的展开宽度，单位米。|
+|`virtual double get_physical_height() const`|返回完整表面的高度，单位米。|
 |`~window() override`|析构对象，结束其资源或引用的生命周期。|
 |`virtual void show()`|显示窗口；首次显示触发load，显示状态变化触发shown。|
+|`void show_hidden()`|首次加载窗口并提交初始隐藏状态，触发`on_load`。已加载窗口调用直接返回；已关闭或正在关闭时抛出`window_closing`。随后调用`show()`即可显示，显示中的窗口使用`hide()`隐藏。|
 |`virtual void hide()`|隐藏窗口并释放相关捕获、焦点和输入界面；保留控件对象供再次显示。|
 |`virtual bool close(bool force = false)`|请求关闭。成功时返回true。force=true时跳过关闭取消回调。|
 |`virtual void activate()`|激活本对象所属窗口；窗口重载激活自身。|
@@ -2048,11 +2249,11 @@ VR顶层容器、空间参考、显示、模态及窗口交互。
 |`virtual bool get_loaded() const`|读取窗口是否完成首次加载。|
 |`virtual bool get_closed() const`|读取窗口是否已关闭。|
 |`virtual dialog_result_t get_dialog_result() const`|读取当前模态结果，进入模态时重置为none。|
-|`virtual void set_dialog_result(dialog_result_t value)`|设置模态结果。模态期间，非`none`值请求关闭。关闭被取消时恢复原值。|
+|`virtual void set_dialog_result(dialog_result_t value)`|设置模态结果。模态期间，非none值触发关闭。|
 |`void set_rect(const rectangle_t &value) override`|设置逻辑矩形；宽高须为正，设置后的物理宽度仍须满足曲率合法域。|
-|`virtual void set_size(uint64_t width, uint64_t height)`|设置窗口rect.width和rect.height，单位为逻辑单位且均须大于0。|
-|`virtual void reparent(const reference_object_t &reference, bool keep_world = false)`|更换为world、body、head、left或right参考目标；传入keep_world=true时保持世界位姿。|
-|`bool get_is_tracking_available(reference_object_type_t mode) const`|查询指定参考模式当前是否可以跟踪。|
+|`virtual void set_size(uint64_t width, uint64_t height)`|设置客户区逻辑宽度和高度，均须大于0。|
+|`virtual void reparent(reference_object_t reference, bool keep_world = false)`|更换为world、body、head、left或right参考目标；传入keep_world=true时保持世界位姿。|
+|`bool get_is_tracking_available(reference_object_t mode) const`|查询指定参考模式当前是否可以跟踪。|
 |`virtual std::optional<pose_t> get_world_transform() const`|返回窗口中心的世界位姿；参考姿态不可用时为nullopt。position属性定义的锚点位于左上角，两者相差半宽和半高。|
 |`virtual bool center_at_view(double distance)`|在视线前方指定米数处居中窗口。跟踪可用且定位成功时返回true。|
 |`virtual bool get_auxiliary() const`|查询该窗口是否为关联输入区的辅助表面。|
@@ -2076,10 +2277,11 @@ VR顶层容器、空间参考、显示、模态及窗口交互。
 |`vec3_t rotation`|派生类可访问的相对reference_object的XYZ欧拉旋转，单位度；常规赋值使用setter以产生变化通知。|
 |`reference_object_t reference_object`|派生类可访问的空间参考目标；常规赋值使用setter以产生变化通知。|
 |`bool show_title_bar = true`|派生类可访问的是否显示窗口标题栏；常规赋值使用setter以产生变化通知。|
-|`std::set<reference_object_type_t> tracking_mode_set{reference_object_type_t::world, reference_object_type_t::body, reference_object_type_t::left, reference_object_type_t::right, reference_object_type_t::head}`|派生类可访问的标题栏跟踪菜单的模式集合；空集合隐藏切换按钮；常规赋值使用setter以产生变化通知。|
+|`std::set<reference_object_t> tracking_mode_set{reference_object_t::world, reference_object_t::body, reference_object_t::left, reference_object_t::right, reference_object_t::head}`|派生类可访问的标题栏跟踪菜单的模式集合；空集合隐藏切换按钮；常规赋值使用setter以产生变化通知。|
 |`bool show_close_button = true`|派生类可访问的是否显示标题栏关闭按钮；常规赋值使用setter以产生变化通知。|
 |`bool movable = true`|派生类可访问的是否允许交互移动和控制环旋转；常规赋值使用setter以产生变化通知。|
 |`bool resizable = true`|派生类可访问的是否允许交互改变逻辑尺寸；常规赋值使用setter以产生变化通知。|
+|`bool scalable = true`|物理缩放柄开关。通过`set_scalable`赋值可同步取消捕获与发出变化事件。|
 |`bool curvature_adjustable = true`|曲率交互开关；派生类通过set_curvature_adjustable赋值以同步取消捕获并触发事件。|
 |`void refresh_layout() override`|刷新控件布局，派生类覆盖时保留必要的基类处理。|
 |`void validate_control(const control &item) const override`|校验窗口可接收的元素；同一窗口同时只关联一个menubar。|
@@ -2087,12 +2289,13 @@ VR顶层容器、空间参考、显示、模态及窗口交互。
 |`void notify_control_removed(control &item, size_t index) override`|元素实际移除后同步menu关联，并按原真实index发出容器事件。|
 |`void notify_control_list_cleared() override`|集合清空后同步窗口的menu关联。|
 |`virtual render_rectangle_t get_menu_rectangle() const`|读取当前窗口内菜单栏的实际逻辑矩形。|
+|`render_rectangle_t get_client_rectangle() const`|读取客户区在完整渲染表面中的矩形，适用于按表面坐标进行自绘的派生窗口。|
 |`virtual void render_window_frame(render_context &context, bool spatial_handle) const`|绘制窗口边框、标题及按spatial_handle控制的空间操作柄。|
 |`std::optional<rectangle_t> get_managed_control_rectangle(const control &item, const rectangle_t &rectangle) const override`|为菜单安排标题栏下方的矩形；普通控件沿用自身矩形。|
 |`double get_content_top() const override`|读取正文起始的逻辑top偏移。|
 |`void render(render_context &context) const override`|使用context绘制控件正文。派生类可重载以实现自定义外观。|
 
-参考目标为world、body、head、left、right五种；tracking_mode_set配置标题栏可选目标。world/body下可执行普通窗口抓取。派生窗口布局可通过受保护的get_content_top()适配标题栏、菜单和控制环。
+参考目标为`world`、`body`、`head`、`left`和`right`。`tracking_mode_set`配置标题栏可选目标。单手侧握可在`world`和`body`模式下抓取窗口，双手抓住两个控制块可执行受约束旋转。
 
 ### `easyvrui/dialog/dialog_result.h`
 
@@ -2141,6 +2344,7 @@ VR顶层容器、空间参考、显示、模态及窗口交互。
 |`virtual void outline(const render_rectangle_t &rectangle, uint32_t color, double thickness = render_style::NORMAL_OUTLINE_THICKNESS) = 0`|绘制矩形轮廓，thickness为正线宽。|
 |`virtual void draw_line(double x1, double y1, double x2, double y2, uint32_t color, double thickness = render_style::FOCUSED_OUTLINE_THICKNESS) = 0`|绘制(x1,y1)到(x2,y2)的线段，使用color和正线宽thickness。|
 |`virtual void draw_text(const u32string &value, const font_t &font, const render_rectangle_t &rectangle, uint32_t color, bool center = false) = 0`|在给定矩形中绘制文本；center为true时居中，字体、字号和样式由对应参数指定。|
+|`virtual void draw_rich_text(const vector<rich_text_t> &value, const font_t &font, const render_rectangle_t &rectangle, uint32_t color, bool multiline, horizontal_alignment_t horizontal, vertical_alignment_t vertical)`|使用指定字体、默认前景色和对齐方式绘制一组富文本片段。|
 |`virtual void push_clip(const render_rectangle_t &rectangle) = 0`|压入矩形裁剪范围；后续绘图受当前裁剪范围约束。|
 |`virtual void pop_clip() = 0`|弹出最近压入的裁剪范围；须与push_clip成对使用。|
 |`virtual void render_control_list(const window &item) = 0`|按窗口当前集合顺序绘制控件。|
@@ -2151,6 +2355,7 @@ VR顶层容器、空间参考、显示、模态及窗口交互。
 |`virtual void outline_rounded_rectangle(const render_rectangle_t &rectangle, double radius_x, double radius_y, uint32_t color, double thickness = render_style::NORMAL_OUTLINE_THICKNESS) = 0`|绘制圆角矩形轮廓。|
 |`virtual void draw_image(const drawing_image &image, const render_rectangle_t &rectangle, double opacity = 1.0) = 0`|将RGBA图像缩放绘制到目标矩形，opacity范围为0至1。|
 |`virtual void draw_screen(uint64_t screen_id, const render_rectangle_t &rectangle) = 0`|绘制screen_id指定的实时显示器画面。|
+|`virtual void draw_screen(uint64_t screen_id, const render_rectangle_t &rectangle, bool accept_pointer)`|带指针交互开关的虚重载；基类默认回落至两参数版本，SDK实现按`accept_pointer`决定是否同步绘制屏幕激光光标。|
 |`virtual void fill_path(const drawing_path &path, uint32_t color) = 0`|按路径的填充规则填充路径。|
 |`virtual void outline_path(const drawing_path &path, uint32_t color, double thickness = render_style::NORMAL_OUTLINE_THICKNESS) = 0`|按thickness绘制路径轮廓。|
 |`virtual void render_control(const control &item)`|调用指定控件的受保护正文绘制入口，供自定义组合绘制使用。|
@@ -2178,6 +2383,7 @@ VR顶层容器、空间参考、显示、模态及窗口交互。
 |`static std::shared_ptr<drawing_image> load_file(const std::filesystem::path &path)`|加载系统支持的图像文件，ICO选取最大图像帧。|
 |`static std::shared_ptr<drawing_image> load_memory(std::span<const uint8_t> data)`|从完整编码图像字节加载。|
 |`static std::shared_ptr<drawing_image> load_ico(std::span<const uint8_t> data)`|检查ICO文件头并从内存加载图标。|
+|`static std::shared_ptr<const drawing_image> get_administrator_shield()`|获取系统管理员盾牌图标；系统图标资源缺失时返回空共享指针。|
 |`std::vector<uint8_t> encode_ico() const`|无损编码PNG并封入单图ICO，保留RGBA像素；宽高各为1～256像素。|
 |`uint64_t get_width() const`|读取图像像素宽度。|
 |`uint64_t get_height() const`|读取图像像素高度。|
@@ -2248,14 +2454,17 @@ value_list的实际使用位置由operation确定；move/line使用前2项，qua
 
 #### `render_style`
 
+`label`、`checkbox`、`radiobutton`、`image`、`panel`、`scrollpanel`、`tabpage`、`screen`、`slider`和`splitter`的默认背景为`0x00000000`，显示所在容器的底色。`tabcontrol`内容区默认使用`WINDOW_BACKGROUND_COLOR`，普通与选中页签分别使用各自的页签颜色。
+
 声明：`class render_style`。
 
 |声明|用途与调用语义|
 |---|---|
-|`static constexpr uint32_t CONTROL_BACKGROUND_COLOR = 0x162738ffu`|普通控件默认背景色。|
+|`static constexpr uint32_t CONTROL_BACKGROUND_COLOR = 0x162738ffu`|凸起控件与顶栏的背景色，用于按钮、组合框主体、菜单栏、工具栏和普通页签。|
+|`static constexpr uint32_t INPUT_BACKGROUND_COLOR = 0x080f1affu`|输入和数据槽的背景色，用于`textbox`、`numericupdown`、`listbox`、`listview`、`treeview`、`grid`、`progressbar`及组合框下拉列表。|
 |`static constexpr uint32_t TEXT_FOREGROUND_COLOR = 0xd1def0ffu`|默认文字前景色。|
 |`static constexpr uint32_t SELECTED_TEXT_FOREGROUND_COLOR = 0xffffffffu`|选中内容文字色。|
-|`static constexpr uint32_t WINDOW_BACKGROUND_COLOR = 0x0d1624ffu`|窗口默认背景色。|
+|`static constexpr uint32_t WINDOW_BACKGROUND_COLOR = 0x0d1624ffu`|窗口及`tabcontrol`内容区默认背景色。|
 |`static constexpr uint32_t WINDOW_TITLE_BACKGROUND_COLOR = 0x244565ffu`|窗口标题栏默认背景色。|
 |`static constexpr uint32_t HOVER_OVERLAY_COLOR = 0x469eff55u`|悬停叠加色。|
 |`static constexpr uint32_t FOCUSED_OUTLINE_COLOR = 0x7bc9ffffu`|焦点边框色。|
@@ -2374,9 +2583,9 @@ value_list的实际使用位置由operation确定；move/line使用前2项，qua
 
 |声明|用途与调用语义|
 |---|---|
-|`bool active = false`|组件是否被当前选择，或输入区是否处于活动状态。|
+|`bool active = false`|组件当前输入路径是否处于活动状态（区别于`provider_info_t.active`的组件被选中状态）。|
 |`bool physical = false`|当前是否为实体键盘模式。|
-|`std::optional<render_rectangle_t> rectangle`|输入区在窗口中的逻辑矩形；没有关联输入区时为nullopt。|
+|`std::optional<render_rectangle_t> rectangle`|供辅助表面定位的输入区矩形；无关联输入区时为`std::nullopt`。|
 
 #### `input_event_type_t`
 
@@ -2469,6 +2678,9 @@ on_input的回调签名为void(input_provider &source, input_event_t &event)。p
 |---|---|
 |`error_diagnostic get_error_diagnostic(const std::exception &error, const std::source_location &location = std::source_location::current())`|从异常取得已有诊断；异常没有诊断时使用调用位置构造。|
 |`std::string get_error_message(const std::exception &error, const std::source_location &location = std::source_location::current())`|返回单行、带源码位置的异常诊断文字。|
+|`std::u32string get_user_error_message(std::string_view key = {})`|按错误键获取适合界面展示的本地化提示，未知键返回通用提示。|
+|`std::u32string get_user_error_message(const std::exception &error)`|按异常的已知错误类型和错误键获取界面提示。|
+|`std::u32string get_user_error_message(const std::error_code &error)`|将文件系统错误转换为本地化界面提示。|
 
 #### `error_diagnostic`
 
@@ -2551,7 +2763,7 @@ on_input的回调签名为void(input_provider &source, input_event_t &event)。p
 |`rotation_invalid`|旋转必须由有限数值组成。|
 |`combobox_item_required`|文本必须匹配组合框中的可用选项。|
 |`invalid_dialog_owner`|对话框所有者必须是可交互的窗口。|
-|`invalid_reference_object_type`|参考对象类型无效。|
+|`invalid_reference_object`|参考对象无效。|
 |`reference_not_tracked`|窗口参考对象当前未被追踪。|
 |`unknown_reference_object`|未知窗口参考对象。|
 |`invalid_reference_owner`|引用必须指向当前UI运行环境中未关闭的窗口。|
@@ -2600,6 +2812,7 @@ on_input的回调签名为void(input_provider &source, input_event_t &event)。p
 |`grid_value_type_required`|单元格值必须为文本、64位有符号整数、有限浮点数或布尔值。|
 |`grid_write_result_invalid`|单元格写入回调必须返回bool、None、错误文本或(bool, 错误文本)。|
 |`process_launch_failed`|启动应用失败，诊断信息包含Windows错误码。|
+|`administrator_privilege_required`|普通权限进程通过`launch_application()`或`open_system_path()`请求管理员权限目标时抛出。|
 
 #### `engine_error`
 
@@ -2621,8 +2834,8 @@ on_input的回调签名为void(input_provider &source, input_event_t &event)。p
 
 |声明|用途与返回值|
 |---|---|
-|`using localized_invalid_argument = localized_exception<invalid_argument>`|localized_exception<invalid_argument>别名。|
-|`using localized_runtime_error = localized_exception<runtime_error>`|localized_exception<runtime_error>别名。|
+|`using localized_invalid_argument = localized_exception<invalid_argument>`|`localized_exception<invalid_argument>`别名。|
+|`using localized_runtime_error = localized_exception<runtime_error>`|`localized_exception<runtime_error>`别名。|
 |`string_view get_language_key(language_key_t key)`|将错误枚举转换为语言键。|
 |`string get_localized_error(language_key_t key, const vector<string> &argument_list = {})`|按language_key_t和argument_list生成本地化错误文字。|
 |`void select_error_language(const string &language)`|选择连接错误语言。|
@@ -2693,7 +2906,7 @@ on_input的回调签名为void(input_provider &source, input_event_t &event)。p
 
 声明：`class language_pack`。
 
-`get_current()`取得SDK当前语言包。内置文字编入静态库及DLL，默认根据系统语言选择。`load_directory(path)`可显式从指定目录加载自定义语言包，以`en.json`提供基础文字。
+`get_current()`读取SDK编入静态库和DLL的语言包，默认根据系统语言选择。`load_directory(path)`从指定目录加载独立语言包，使用`en.json`提供基础文字。
 
 |声明|用途与调用语义|
 |---|---|
@@ -2815,7 +3028,7 @@ on_input的回调签名为void(input_provider &source, input_event_t &event)。p
 
 ## 标准对话框
 
-以下函数在调用完成时返回结果，等待期间持续处理界面活动。owner指定直接父窗口；模态期间禁用该父窗口，其它窗口继续交互。对话框采用World与center定位，并继承父窗口的physical_scale。
+以下函数在调用完成时返回结果，等待期间持续处理界面活动。`owner`指定直接父窗口；模态期间禁用该父窗口，其它窗口继续交互。省略`owner`时，SDK按当前分发窗口、加载中窗口、活动窗口及最近可交互普通窗口的顺序解析默认父窗口（若目标正被模态对话框阻挡，则自动转到其最内层阻挡对话框）；无候选时以无父窗口方式显示。传入无效或辅助表面`owner`抛出`invalid_dialog_owner`，在layout/IME组件会话中调用同步标准对话框抛出`invalid_input_provider_role`，在绘制或窗口提交阶段等待模态对话框抛出`operation_failed`（`dialog_wait_during_render`）。对话框采用World与center定位，并继承父窗口的`physical_scale`。
 
 ### 颜色与字体
 
@@ -2835,7 +3048,9 @@ dialog_result_t messagebox(const std::u32string &message, const std::u32string &
 std::u32string messagebox(const std::u32string &message, const std::u32string &title, const std::vector<messagebox_button_t> &button_list, messagebox_icon_t icon = messagebox_icon_t::none, const std::u32string &default_button_name = U"", window *owner = nullptr);
 ```
 
-`messagebox_button_t`保存name与text。标准重载返回`dialog_result_t`；自定义按钮重载返回所选按钮的name。
+`messagebox_button_t`保存`name`与`text`。标准重载返回`dialog_result_t`；自定义按钮重载要求`button_list`非空、各按钮`name`和`text`非空且`name`唯一、`default_button_name`为空或匹配列表内某项（否则抛出`property_type_mismatch`），为空时聚焦首个按钮，点击返回所选按钮的`name`，直接关闭返回空字符串。
+
+`void show_messagebox(message, title, icon, owner)`为无阻塞异步通知入口（返回`void`），`owner`必填；消息为空或`owner`已关闭/释放时直接返回，若该`owner`已有同类通知框则更新内容。当`owner`暂时隐藏时，消息框在该窗口显示时打开。
 
 |枚举|成员及数值|
 |---|---|
@@ -2860,9 +3075,11 @@ std::vector<std::filesystem::path> file_open_dialog(const std::u32string &title 
 std::optional<std::filesystem::path> file_save_dialog(const std::u32string &title = U"", const std::filesystem::path &initial_directory = {}, const std::u32string &initial_filename = U"", const std::vector<file_filter_t> &filter_list = {}, std::size_t filter_index = 0u, const std::u32string &default_extension = U"", bool confirm_overwrite = true, const std::u32string &confirm_text = U"", window *owner = nullptr, std::function<void(const std::filesystem::path &)> directory_changed = {}, std::function<void(std::size_t)> filter_changed = {});
 ```
 
-`initial_directory`为空时使用记忆目录。`initial_filename`用于预填文件名。筛选列表为空时采用默认筛选，`filter_index`从0开始。`file_filter_t`的`pattern_list`支持`*`和`?`。`confirm_text`为空时使用本地化确认按钮。目录和筛选回调在UI线程收到初始值及后续变化。
+`file_filter_t`包含`std::u32string name`与`std::vector<std::u32string> pattern_list`。每项的`name`与`pattern_list`均须非空，模式为文件名通配符（支持`*`和`?`，不允许包含`/`、`\`或`:`，否则抛出`candidate_string_sequence`）。筛选列表为空时采用默认筛选，`filter_index`从0开始且须在实际筛选表范围内（越界抛出`selected_item_index_out_of_range`）。`initial_directory`为空时使用进程内由打开/保存共享的记忆目录，无有效记忆时使用进程当前工作目录；提供不可用目录时显示提示并保留当前目录。成功打开或保存后更新进程内记忆目录。`initial_filename`用于预填文件名，打开后焦点位于文件名输入框且主名处于选中状态。`confirm_text`为空时使用本地化确认按钮。`directory_changed`和`filter_changed`在显示前同步收到初始值，后续在UI线程收到变更。
 
-打开返回所选路径列表，取消返回空列表。启用`multi_select`可以选择多个文件。保存返回目标路径，取消返回`std::nullopt`。`default_extension`为空时按当前筛选推导，`confirm_overwrite`控制覆盖确认。
+地址栏默认显示可点击的目录层级。点击`>`打开子目录菜单，点击`<<`查看折叠的上级目录。点击地址栏空白处、按`Alt+D`或`Ctrl+L`可编辑完整路径，编辑开始时全选路径。按`Enter`导航，按`Esc`或移开焦点可返回当前目录的层级显示。
+
+打开返回所选路径列表，取消返回空列表。启用`multi_select`可以选择多个文件。保存返回目标路径（文件由调用方写入），取消返回`std::nullopt`。输入文件名已带扩展名时沿用原扩展名，否则按显式`default_extension`（可带前导`.`，非法扩展名抛出`candidate_string_sequence`）或当前筛选中第一项具体`*.ext`推导；`confirm_overwrite=true`时仅对已存在的常规文件弹出覆盖确认。
 
 ## 常见调用组合
 

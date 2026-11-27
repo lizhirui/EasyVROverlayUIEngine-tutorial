@@ -34,11 +34,11 @@ C++属性通过表中的访问方法读写，Python通过同名属性访问。�
 |`title_font`|`get_title_font`、`set_title_font`|标题字体，默认Segoe UI、20逻辑像素。|
 |`icon`|`get_icon`、`set_icon`|标题图标，初始为SDK图标，赋`None`或空`shared_ptr`可清除。|
 |`menu`|`get_menu`、`set_menu`|与标题栏下方命令区域关联的`menubar`，初始为空。|
-|`show_title_bar`、`show_close_button`|`get_show_title_bar`、`set_show_title_bar`、`get_show_close_button`、`set_show_close_button`|标题栏和标准关闭入口的显示开关，初始为真。|
-|`tracking_mode_set`|`get_tracking_mode_set`、`set_tracking_mode_set`|允许在标题栏切换的模式，默认包含`world`、`body`、`left`、`right`、`head`。空集合隐藏入口。|
-|`movable`、`resizable`、`curvature_adjustable`|`get_movable`、`set_movable`、`get_resizable`、`set_resizable`、`get_curvature_adjustable`、`set_curvature_adjustable`|分别控制手柄移动与旋转、交互缩放、交互曲率调整，初始为真。|
+|`show_title_bar`、`show_border`、`show_close_button`|`get_show_title_bar`、`set_show_title_bar`、`get_show_border`、`set_show_border`、`get_show_close_button`、`set_show_close_button`|标题栏、窗口主体描边和标准关闭入口的显示开关，初始均为真。|
+|`tracking_mode_set`|`get_tracking_mode_set`、`set_tracking_mode_set`|允许在标题栏切换的模式（C++`std::set<reference_object_t>` / Python`set[reference_object]`），默认包含`world`、`body`、`left`、`right`、`head`。空集合隐藏入口。|
+|`movable`、`rotatable`、`resizable`、`scalable`、`curvature_adjustable`|`get_movable`、`set_movable`、`get_rotatable`、`set_rotatable`、`get_resizable`、`set_resizable`、`get_scalable`、`set_scalable`、`get_curvature_adjustable`、`set_curvature_adjustable`|分别控制单手侧握移动、双手控制环旋转、扳机拖动调整客户区逻辑尺寸、右下角物理缩放柄及左下角曲率调节柄，初始均为真。|
 |`physical_scale`|`get_physical_scale`、`set_physical_scale`|正有限缩放倍数，初始为1.0。每逻辑像素基准为1毫米，首次显示时可从来源继承未显式配置的缩放。|
-|`physical_width`、`physical_height`|`get_physical_width`、`get_physical_height`|只读，表面展开宽度与高度，单位为米。|
+|`physical_width`、`physical_height`|`get_physical_width`、`get_physical_height`|只读，完整表面（含控制框、标题栏、菜单栏与客户区）的展开宽度与高度，单位为米。|
 |`curvature`|`get_curvature`、`set_curvature`|曲率，单位为米的倒数，默认0.0为平面。曲率与展开宽度的积须小于`2π`。|
 |`position`、`rotation`|`get_position`、`set_position`、`get_rotation`、`set_rotation`|初始均为零。位置为相对于参考对象的左上角偏移，单位为米，旋转为XYZ欧拉角，单位为度。|
 |`startup_position`|`get_startup_position`、`set_startup_position`|首次定位方式，默认为`center`。`none`使用配置的参考对象和位姿。|
@@ -54,7 +54,7 @@ C++属性通过表中的访问方法读写，Python通过同名属性访问。�
 |Python|C++|用途|
 |---|---|---|
 |`window(name)`|`window(name)`|构造顶层表面。|
-|`show()`、`hide()`|`show()`、`hide()`|显隐表面。首次`show()`触发加载，后续显隐保留窗口。|
+|`show()`、`show_hidden()`、`hide()`|`show()`、`show_hidden()`、`hide()`|显隐表面。`show_hidden()`执行首次加载并保持隐藏（触发`on_load`）；首次`show()`触发加载，后续显隐保留窗口。|
 |`close(force=False)`|`close(force=false)`|请求关闭。返回是否已关闭，强制关闭会跳过取消环节。|
 |`activate()`|`activate()`|请求激活现有表面。|
 |`show_dialog(owner_window)`|`show_dialog(owner_window)`|同步运行自身模态循环，暂时阻止直接所有者的交互，关闭时返回`dialog_result`。|
@@ -70,15 +70,16 @@ C++属性通过表中的访问方法读写，Python通过同名属性访问。�
 |---|---|
 |`on_title_changed`、`on_title_foreground_color_changed`、`on_title_background_color_changed`、`on_title_font_changed`|标题文字、配色或字体改变。|
 |`on_icon_changed`、`on_menu_changed`|图标或关联的`menubar`变化。|
-|`on_show_title_bar_changed`、`on_show_close_button_changed`、`on_tracking_mode_set_changed`|标题栏、关闭入口或跟踪选择集合变化。|
-|`on_movable_changed`、`on_resizable_changed`、`on_curvature_adjustable_changed`|空间交互开关变化。|
+|`on_show_title_bar_changed`、`on_show_border_changed`、`on_show_close_button_changed`、`on_tracking_mode_set_changed`|标题栏、描边、关闭入口或跟踪选择集合变化。|
+|`on_movable_changed`、`on_rotatable_changed`、`on_resizable_changed`、`on_scalable_changed`、`on_curvature_adjustable_changed`|空间交互开关变化。|
 |`on_rotation_changed`、`on_curvature_changed`、`on_startup_position_changed`、`on_reference_object_changed`|旋转、曲率、启动定位方式或参考对象变化。三维位置变化使用继承的`on_moved`。|
 |`on_load`、`on_shown`、`on_hidden`|分别在首次加载、显示和隐藏时触发。|
+|`on_global_pointer_down`、`on_global_pointer_up`|任一手柄按键按下或释放时触发，参数为`global_pointer_event_args_t`，隐藏或失焦窗口同样接收。|
 |`on_closing`、`on_closed`|关闭前使用`cancel_event_args_t`，可设置`cancel`；成功后触发`on_closed`。|
 |`on_render_failed`|提交绘制失败，参数为`render_error_event_args_t`。|
 |`on_tracking_lost`、`on_tracking_restored`|参考对象丢失或恢复。|
 |`on_activated`、`on_deactivated`|当前表面激活或失去激活。|
-|`on_move_start`、`on_move_end`、`on_resize_start`、`on_resize_end`、`on_curvature_adjust_start`、`on_curvature_adjust_end`|交互移动、缩放、调整曲率的开始和结束。结束事件使用`interaction_end_event_args_t`。|
+|`on_move_start`、`on_move_end`、`on_resize_start`、`on_resize_end`、`on_scale_start`、`on_scale_end`、`on_curvature_adjust_start`、`on_curvature_adjust_end`|交互移动、逻辑尺寸调整、物理缩放、调整曲率的开始和结束。结束事件使用`interaction_end_event_args_t`。|
 
 ## 独立例程
 

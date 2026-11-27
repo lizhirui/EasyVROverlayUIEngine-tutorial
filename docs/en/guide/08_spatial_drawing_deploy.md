@@ -154,22 +154,22 @@ int main()
 Set `startup_position` to `none`, close the title bar, use `physical_scale = 0.5` to reduce the 220×220 logical pixels to a 11 cm square small dial, and add `curvature = 1.2` to make it slightly curved and fit the wrist!
 
 ::: code-group
-```python [Python（第2步新增）]
-from easyvrui import reference_object_type, startup_position, vec3
+```python [Python (Step 2)]
+from easyvrui import reference_object, startup_position, vec3
 
 window_main.show_title_bar = False
 window_main.startup_position = startup_position.none
-window_main.reference_object = reference_object_type.left
+window_main.reference_object = reference_object.left
 window_main.physical_scale = 0.5
 window_main.curvature = 1.2
 window_main.position = vec3(-0.05, 0.06, 0.08)
 window_main.rotation = vec3(-45.0, 20.0, 0.0)
 ```
 
-```cpp [C++（第2步新增）]
+```cpp [C++ (Step 2)]
 window_main->set_show_title_bar(false);
 window_main->set_startup_position(easyvrui::startup_position_t::none);
-window_main->set_reference_object(easyvrui::reference_object_t{easyvrui::reference_object_type_t::left});
+window_main->set_reference_object(easyvrui::reference_object_t::left);
 window_main->set_physical_scale(0.5);
 window_main->set_curvature(1.2);
 window_main->set_position(easyvrui::vec3_t{-0.05, 0.06, 0.08});
@@ -184,13 +184,13 @@ window_main->set_rotation(easyvrui::vec3_t{-45.0, 20.0, 0.0});
 Click on the dial to "remove" the dial and hover it in the air (keep the current world position unchanged), then click again to snap back to the left wrist!
 
 ::: code-group
-```python [Python（第3步新增）]
+```python [Python (Step 3)]
 def dial_watch_click(source, event):
-    if window_main.reference_object.type == reference_object_type.left:
-        window_main.reparent(reference_object_type.world, keep_world = True)
+    if window_main.reference_object == reference_object.left:
+        window_main.reparent(reference_object.world, keep_world = True)
         dial_watch.accent_color = 0x4ADE80FF
     else:
-        window_main.reference_object = reference_object_type.left
+        window_main.reference_object = reference_object.left
         window_main.position = vec3(-0.05, 0.06, 0.08)
         window_main.rotation = vec3(-45.0, 20.0, 0.0)
         dial_watch.accent_color = 0x38BDF8FF
@@ -199,16 +199,16 @@ def dial_watch_click(source, event):
 dial_watch.on_click += dial_watch_click
 ```
 
-```cpp [C++（第3步新增）]
+```cpp [C++ (Step 3)]
 dial_watch->on_click += [=](easyvrui::control_base &, easyvrui::event_args_t &)
 {
-    if(window_main->get_reference_object().type == easyvrui::reference_object_type_t::left)
+    if(window_main->get_reference_object() == easyvrui::reference_object_t::left)
     {
-        window_main->reparent(easyvrui::reference_object_t{easyvrui::reference_object_type_t::world}, true);
+        window_main->reparent(easyvrui::reference_object_t::world, true);
     }
     else
     {
-        window_main->set_reference_object(easyvrui::reference_object_t{easyvrui::reference_object_type_t::left});
+        window_main->set_reference_object(easyvrui::reference_object_t::left);
         window_main->set_position(easyvrui::vec3_t{-0.05, 0.06, 0.08});
         window_main->set_rotation(easyvrui::vec3_t{-45.0, 20.0, 0.0});
     }

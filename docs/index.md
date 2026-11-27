@@ -35,7 +35,7 @@ features:
 
 |部分|学习内容|
 |---|---|
-|[基础篇](/basics/00_why_easyvrui)|[安装目录与启动](/basics/01_install_and_setup)、SteamVR操作、创建`window`、窗体设计与代码导出|
+|[基础篇](/basics/00_why_easyvrui)|[安装目录与服务配置](/basics/01_install_and_setup)、[SteamVR操作与内置应用（含EasyVRScreen）](/basics/02_vr_operations_and_apps)、创建`window`、窗体设计与代码导出|
 |[应用篇](/guide/)|按控件查阅属性、方法和事件，运行配套的C++与Python示例|
 |[综合篇](/projects/01_vrc_chatbox)|完成VRChat OSC聊天工具、日志与相册、Avatar参数面板、腕部HUD和远程应用|
 |[高级篇](/advanced/01_architecture)|从Engine与SDK的职责讲到TLS、会话、渲染、输入排空和空间数学|

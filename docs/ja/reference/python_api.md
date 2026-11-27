@@ -541,7 +541,7 @@ panel_main.control_list.add(button_removed)
 |`selected_index`|`int = -1`|読み書き可能；現在のページのサブスコア、`-1`は選択されていないページを表します。|
 |`page_close_button_visible`|`bool = False`|読み書き可能；タブの閉じるボタンを表示するかどうか|
 |`selected_page`|`tabpage \| None`|読み取り専用；現在のページオブジェクト|
-|`tab_position`|`tab_position.top`|読み書き可能；枚举または`"top"/"bottom"/"left"/"right"`文字列を受け入れます。|
+|`tab_position`|`tab_position.top`|読み書き可能；列挙型または`"top"/"bottom"/"left"/"right"`文字列を受け入れます。|
 |`tab_size`|`int = 36`|読み書き可能；タブバーの厚さは`0`以上でなければなりません。|
 |`tab_font`|`font()`|読み書き可能；タブのフォント|
 |`tab_foreground_color`|`int = 0xD1DEF0FF`|読み書き可能；通常のタブテキストの色|
@@ -549,7 +549,7 @@ panel_main.control_list.add(button_removed)
 |`selected_tab_foreground_color`|`int = 0xFFFFFFFF`|読み書き可能；選択されたタブテキストの色|
 |`selected_tab_background_color`|`int = 0x316B9AFF`|読み書き可能；選択されたタブの背景色|
 
-`tab_position`の枚举は`easyvrui`からインポートでき、メンバーは`top/bottom/left/right`です。
+`tab_position`の列挙型は`easyvrui`からインポートでき、メンバーは`top/bottom/left/right`です。
 
 ページは`page_list.add(page)`を通じて追加され、タブの外観とアクティブなページは`tabcontrol`によって管理されます。メインコンテンツエリアはコンテナの背景を使用し、ハイライト効果は特定のタブに作用します。`tabcontrol`は`page_list`を統一して使用し、その`control_list`へのアクセスは、ベースクラスのエントリー呼び出しを含む場合、`page_list_required`診断を含む`RuntimeError`を投げ出します。
 
@@ -615,12 +615,12 @@ centerは初めての位置決め時にソースウィンドウと平行に中�
 |`show_close_button`|`bool = True`|読み書き；タイトルバーの閉じるボタン|
 |`movable`|`bool = True`|読み書き；ハンドルで移動と回転を許可するかどうか|
 |`resizable`|`bool = True`|読み書き；インタラクティブな縮小を許可するかどうか|
-|`startup_position`|`startup_position.center`|読み書き；枚举または`"none"/"center"`文字列を受け入れる。noneの場合は初期位置と姿勢を使用；centerは初めて表示時にはソースウィンドウと平行に中央に配置し、ヘッドディスプレイの前に移動する。有効なソースがない場合はヘッドディスプレイの中央に配置|
+|`startup_position`|`startup_position.center`|読み書き；列挙型または`"none"/"center"`文字列を受け入れる。noneの場合は初期位置と姿勢を使用；centerは初めて表示時にはソースウィンドウと平行に中央に配置し、ヘッドディスプレイの前に移動する。有効なソースがない場合はヘッドディスプレイの中央に配置|
 |`curvature_adjustable`|`bool = True`|読み書き；左下角の曲率ボタンの表示とインタラクション、閉じると現在のドラッグとジョイスティック調整が即座にキャンセルされ、再起動後にtriggerを離してから調整を開始できる|
 
 `physical_scale = 1.0`の時は各論理ピクセルが1ミリメートルに対応する。`rect.width * physical_scale / 1000.0`は表面の展開幅で、曲面ウィンドウ内では展開の弧長に対応する。`curvature`はkと記し、展開幅はWと記す：属性の合法範囲は有限の`k >= 0`であり、`k * W < 2π`である；曲率とスケールを設定する際にはこの関係を満たす必要がある。ウィンドウの左下角のハンドル入力でインタラクティブに調整する際には、160°の安全な弧角の上限を使用する；このインタラクティブな上限は属性の合法範囲ごとに処理される。左右下角の入力はtriggerで保持され、離すまで選択とレーザーキャプチャを維持する；曲率はジョイスティックで左右に調整し、サイズはジョイスティックで上下に調整し、左下角をダブルクリックすると平面に戻る
 
-`reference_object_type`の枚举には`world/body/head/left/right`が含まれる。`reference_object()`はデフォルトのworldレコードを構築し、`reference_object(type)`はその枚举を受け取る；レコードの`type`は読み書き可能。`get_reference_object_type_name(value: reference_object_type) -> str`は名前を返し、`parse_reference_object_type(value: str) -> reference_object_type`は名前を解析する。2つのreference_objectレコードはtypeで比較される；枚举と比較する際には`item.reference_object.type`を使用し、名前と比較する際には`get_reference_object_type_name(item.reference_object.type)`を使用する
+`reference_object_type`の列挙型には`world/body/head/left/right`が含まれる。`reference_object()`はデフォルトのworldレコードを構築し、`reference_object(type)`はその列挙型を受け取る；レコードの`type`は読み書き可能。`get_reference_object_type_name(value: reference_object_type) -> str`は名前を返し、`parse_reference_object_type(value: str) -> reference_object_type`は名前を解析する。2つのreference_objectレコードはtypeで比較される；列挙型と比較する際には`item.reference_object.type`を使用し、名前と比較する際には`get_reference_object_type_name(item.reference_object.type)`を使用する
 
 Pythonのアクセス適応では、`reference_object`で値を設定し、`reparent()`パラメータでreference_objectの記録、reference_object_typeの列挙、または5種類のモード名の文字列を使用できます。reference_objectの読み取りは常に記録を返します。`tracking_mode_set`の値設定は`set`または`frozenset`を受け入れ、要素は列挙であるか、アクセス適応のモード文字列、またはreference_objectの記録を使用できます。読み取りは列挙のスナップショットを返します。空の集合は切り替えボタンを隠し、モードを追加する必要がある場合は全体を再設定します。
 

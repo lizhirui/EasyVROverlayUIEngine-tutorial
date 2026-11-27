@@ -55,7 +55,7 @@ C++接入层提供`easyvrui.h`和分类头文件。源代码包含头文件编�
 
 Python接入层分为公开的`easyvrui`包和原生扩展`engine_interface_native*.pyd`。安装器将包和静态链接扩展集中部署在`sdk/api/python/`。通过SDK启动Python清单时，SDK前置该目录并保留已有`PYTHONPATH`。直接运行时由调用者配置这个目录。模块加载发生在命名管道发现、TLS连接和控件提交之前，排错时先核对实际导入路径、CPython版本和模块架构。
 
-运行目录将Engine与应用分开。`bin/`保存Engine、SteamVR动作资源和配置，`app/`按源码中的应用目录布局。Engine使用`bin/config.json`中的相对路径启动Desktop和输入组件。Desktop从`app/desktop/config.json`找到内置应用清单，清单再按自身目录定位程序入口。各组件将内置语言包编入自己的二进制。
+运行目录将Engine与应用分开。`bin/`保存`easyvrui_engine.exe`、`easyvrui_service.exe`、`easyvrui_screen_helper.exe`、SteamVR动作资源和`config.json`，`app/`按源码中的应用目录布局。正式服务安装模式下，Session 0中的`easyvrui_service.exe`按活动控制台登录会话启动并监督当前用户桌面的Engine进程与SYSTEM身份的抓屏Helper（`easyvrui_screen_helper.exe`，负责跨输入桌面抓屏和已鉴权键鼠转发），会话切换或停止服务时先通知正常退出，超时由Job Object统一回收；便携模式（`--no-service`）则直接运行Engine并在本进程执行桌面捕获。Engine使用`bin/config.json`中的相对路径启动Desktop和输入组件。Desktop从`app/desktop/config.json`找到内置应用清单（含EasyVRScreen），清单再按自身目录定位程序入口。各组件将内置语言包编入自己的二进制。
 
 相反，应用导入SDK成功后仍可能连接失败。举例来说，SDK若拿到错误的服务公钥指纹，网络可以连通，TLS身份检查却会报错。又如应用已鉴权，可以执行管理操作，但窗面一直没有显示，就应检查`show()`、应用消息循环、`present`响应和Engine的渲染状态。把“能载入库”“能接入会话”“能在头显显示”分别测试，能快速把原因缩到一层。
 
@@ -125,7 +125,7 @@ Task Manager与File Manager也在应用层。前者通过管理接口查看会�
 
 ### SteamVR断线与自动恢复
 
-Engine用`vrserver.exe`的PID和创建时间识别SteamVR实例。收到正常退出事件`VREvent_Quit`时，Engine先确认退出，再释放OpenVR连接。进程异常退出、帧同步失败或OpenVR连接失效也会触发断线处理。VR跟踪在此期间暂停，Engine继续服务IPC，保留已有的应用、Desktop、layout和IME会话，并保存新提交的窗口状态。
+Engine以`vrserver.exe`与`vrmonitor.exe`的进程及IPC管道就绪状态探测SteamVR，并以`VRApplication_Background`后台方式连接（不主动拉起SteamVR），同时按`vrserver.exe`的PID和创建时间识别实例。收到正常退出事件`VREvent_Quit`时，Engine先确认退出，再释放OpenVR连接。进程异常退出、帧同步失败或OpenVR连接失效也会触发断线处理。VR跟踪在此期间暂停，Engine继续服务IPC，保留已有的应用、Desktop、layout和IME会话，并保存新提交的窗口状态。
 
 Engine等旧实例完全退出并检测到新实例后重新初始化OpenVR，加载动作清单，按需切换图形适配器，再按最新窗口状态重建Overlay和纹理，恢复窗口位姿、曲率和激光跟踪。排查时可在SteamVR重启期间更新已打开窗口的内容，再核对恢复后的窗口内容和会话ID。
 

@@ -1752,7 +1752,7 @@ window_main->get_control_list().add(toolbar_main);
 
 声明。`class toolbar_button_collection`。
 
-toolbarに属するボタンコンテナで、コンストラクタはprivateで、toolbar.get_button_list()によって提供されます。インデックスまたは名前で検索し、名前は栏内で一意です。add/insertはshared_ptr<toolbar_button>を受け入れることも、名前に基づいてボタン参照を作成して返すこともできます。insertは末尾を超えて追加され、removeはshared_ptr<toolbar_button>を返し、get_item_listはポインタリストのコピーを返します。
+toolbarに属するボタンコンテナで、コンストラクタはprivateで、toolbar.get_button_list()によって提供されます。インデックスまたは名前で検索し、名前は栏内で一意です。add/insertは`shared_ptr<toolbar_button>`を受け入れることも、名前に基づいてボタン参照を作成して返すこともできます。insertは末尾を超えて追加され、removeは`shared_ptr<toolbar_button>`を返し、get_item_listはポインタリストのコピーを返します。
 
 |宣言|用途と呼び出しの意味|
 |---|---|
@@ -2621,8 +2621,8 @@ u32string_viewクエリをサポートする透明なハッシュエンジンで
 
 |宣言|用途と戻り値|
 |---|---|
-|`using localized_invalid_argument = localized_exception<invalid_argument>`|localized_exception<invalid_argument>別名。|
-|`using localized_runtime_error = localized_exception<runtime_error>`|localized_exception<runtime_error>別名。|
+|`using localized_invalid_argument = localized_exception<invalid_argument>`|`localized_exception<invalid_argument>`別名。|
+|`using localized_runtime_error = localized_exception<runtime_error>`|`localized_exception<runtime_error>`別名。|
 |`string_view get_language_key(language_key_t key)`|エラーを言語キーに変換します。|
 |`string get_localized_error(language_key_t key, const vector<string> &argument_list = {})`|language_key_tとargument_listに基づいてローカライズされたエラーテキストを生成します。|
 |`void select_error_language(const string &language)`|接続エラーの言語を選択します。|
@@ -2837,7 +2837,7 @@ std::u32string messagebox(const std::u32string &message, const std::u32string &t
 
 `messagebox_button_t`はnameとtextを保存します。標準の重载は`dialog_result_t`を返し、カスタムボタンの重载は選択されたボタンのnameを返します。
 
-|枚举|メンバーと数値|
+|列挙型|メンバーと数値|
 |---|---|
 |`messagebox_icon_t`|`none=0`、`error=0x10`、`question=0x20`、`warning=0x30`、`information=0x40`|
 |`messagebox_button_set_t`|`ok=0`、`ok_cancel=1`、`abort_retry_ignore=2`、`yes_no_cancel=3`、`yes_no=4`、`retry_cancel=5`|

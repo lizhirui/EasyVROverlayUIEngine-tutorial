@@ -85,7 +85,7 @@ When `launch.runtime` is `python`, use the following startup fields:
 }
 ```
 
-The SDK executes `python.exe -B <主脚本> <参数列表>` through `python.exe` in the PATH, and the main script must exist. The SDK first looks up the installation root directory from the list directory upwards, and then from the framework directory of the caller. After finding the installation, prepend `sdk/api/python/` to the sub-process' `PYTHONPATH` and keep the original value, while setting `EASYVRUI_NATIVE_DIR` to that directory. The SDK also sets `PYTHONDONTWRITEBYTECODE=1`. The application script is directly `import easyvrui`, and the interpreter must match the installed x64 native extension and CPython version.
+The SDK executes `python.exe -B <main-script> <arguments>` through `python.exe` in the PATH, and the main script must exist. The SDK first looks up the installation root directory from the list directory upwards, and then from the framework directory of the caller. After finding the installation, prepend `sdk/api/python/` to the sub-process' `PYTHONPATH` and keep the original value, while setting `EASYVRUI_NATIVE_DIR` to that directory. The SDK also sets `PYTHONDONTWRITEBYTECODE=1`. The application script is directly `import easyvrui`, and the interpreter must match the installed x64 native extension and CPython version.
 
 ## Parameters and Connection Information
 

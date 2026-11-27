@@ -3,15 +3,9 @@
   --tutorial-gutter: 128px;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 639px) {
   .tutorial-site {
-    --tutorial-gutter: clamp(32px, 8vw, 80px);
-  }
-}
-
-@media (max-width: 767px) {
-  .tutorial-site {
-    --tutorial-gutter: clamp(16px, 5vw, 32px);
+    --tutorial-gutter: clamp(16px, 6vw, 48px);
   }
 }
 
@@ -79,7 +73,7 @@
   border-bottom-color: transparent;
 }
 
-@media (min-width: 768px) and (max-width: 1320px) {
+@media (min-width: 1024px) and (max-width: 1320px) {
   .tutorial-site .VPNavBarSearch .DocSearch-Button {
     width: auto;
     padding: 0 10px;
@@ -101,6 +95,58 @@
   .tutorial-locale-picker {
     margin-inline-start: 8px;
   }
+}
+
+@media (max-width: 1023px) {
+  .tutorial-site .VPNavBar .VPNavBarMenu,
+  .tutorial-site .VPNavBar .VPNavBarAppearance,
+  .tutorial-site .VPNavBar .VPNavBarExtra,
+  .tutorial-locale-picker:not(.is-mobile) {
+    display: none;
+  }
+
+  .tutorial-site .VPNavBar .VPNavBarHamburger {
+    display: flex;
+    width: 36px;
+    justify-content: flex-end;
+  }
+
+  .tutorial-site .VPNavScreen.VPNavScreen {
+    display: block;
+  }
+
+  .tutorial-site .VPNavBarSearch .DocSearch-Button {
+    width: auto;
+    padding: 0 10px;
+  }
+
+  .tutorial-site .VPNavBarSearch .DocSearch-Button-Placeholder,
+  .tutorial-site .VPNavBarSearch .DocSearch-Button-Keys {
+    display: none;
+  }
+
+  .tutorial-site .VPNavBarSearch .DocSearch-Search-Icon {
+    margin-right: 0;
+  }
+}
+
+.tutorial-site .VPHome {
+  overflow-x: clip;
+}
+
+.tutorial-site .VPHome .VPHero.VPHero,
+.tutorial-site .VPHome .VPFeatures.VPFeatures {
+  padding-inline: var(--tutorial-gutter);
+}
+
+.tutorial-site .VPHome .VPHero > .container,
+.tutorial-site .VPHome .VPFeatures > .container {
+  max-width: var(--tutorial-page-width);
+}
+
+.tutorial-site .VPHome > .vp-doc.container {
+  max-width: calc(var(--tutorial-page-width) + var(--tutorial-gutter) * 2);
+  padding-inline: var(--tutorial-gutter);
 }
 
 .tutorial-site .VPNavBarTranslations,
@@ -241,7 +287,7 @@ a.tutorial-locale-option:hover {
   padding-inline: 0;
 }
 
-.tutorial-doc-shell .VPDoc {
+.tutorial-doc-shell .VPDoc.VPDoc {
   padding: 0 var(--tutorial-gutter) 72px;
 }
 

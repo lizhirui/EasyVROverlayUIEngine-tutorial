@@ -3,12 +3,6 @@
   --tutorial-gutter: 128px;
 }
 
-@media (max-width: 639px) {
-  .tutorial-site {
-    --tutorial-gutter: clamp(16px, 6vw, 48px);
-  }
-}
-
 .tutorial-site .VPNav {
   z-index: var(--vp-z-index-nav);
 }
